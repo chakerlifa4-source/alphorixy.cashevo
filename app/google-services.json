@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "164326659551",
+    "project_id": "cashevo-54db7",
+    "storage_bucket": "cashevo-54db7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:164326659551:android:85276ffd371c2d65dd606a",
+        "android_client_info": {
+          "package_name": "com.alphorixy.cashevo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "164326659551-k0fdpc26jerk4ac9n2a9ngsgem2uv9ap.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alphorixy.cashevo",
+            "certificate_hash": "8a828f54327c36a34b66129629b739e060c177e1"
+          }
+        },
+        {
+          "client_id": "164326659551-bnl6e4f5lkc5pr6jcs3cf77v1jnk204f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVQ0zvyKIKS2637Qi9MyNAAiT930Qsd_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "164326659551-bnl6e4f5lkc5pr6jcs3cf77v1jnk204f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

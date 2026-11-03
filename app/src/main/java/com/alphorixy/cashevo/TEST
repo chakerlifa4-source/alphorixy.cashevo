@@ -1,0 +1,2921 @@
+package com.alphorixy.cashevo
+
+import android.content.Context
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+
+private val BackgroundTop = Color(0xFF0F2027)
+private val BackgroundMiddle = Color(0xFF203A43)
+val BackgroundBottom = Color(0xFF2C5364)
+val CardColor = Color(0xFF1E3038)
+val Gold = Color(0xFFFFD700)
+val TextWhite = Color(0xFFFFFFFF)
+val TextMuted = Color(0xFFB0BEC5)
+val SuccessGreen = Color(0xFF51CF66)
+
+val AppBackground = Brush.verticalGradient(
+    colors = listOf(
+        BackgroundTop,
+        BackgroundMiddle,
+        BackgroundBottom
+    )
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Gold,
+                    onPrimary = Color.Black,
+                    secondary = BackgroundBottom,
+                    background = BackgroundTop,
+                    surface = CardColor,
+                    onSurface = TextWhite
+                )
+            ) {
+                MainDashboardScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun MainDashboardScreen() {
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val coroutineScope = rememberCoroutineScope()
+
+    val items = listOf(
+        BottomNavItem("يكسب", Icons.Default.AttachMoney),
+        BottomNavItem("المحفظة", Icons.Default.AccountBalanceWallet),
+        BottomNavItem("دعوة", Icons.Default.Group),
+        BottomNavItem("ملفي الشخصي", Icons.Default.Person)
+    )
+
+    Scaffold(
+        containerColor = BackgroundTop,
+        bottomBar = {
+            NavigationBar(
+                containerColor = BackgroundTop,
+                contentColor = TextWhite,
+                tonalElevation = 0.dp
+            ) {
+                items.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = item.title,
+                                fontSize = 11.sp
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Gold,
+                            selectedTextColor = Gold,
+                            unselectedIconColor = TextMuted,
+                            unselectedTextColor = TextMuted,
+                            indicatorColor = BackgroundMiddle
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) { page ->
+            when (page) {
+                0 -> EarnScreen()
+                1 -> WalletScreen(
+                    currentBalance = TODO(),
+                    minWithdrawal = TODO()
+                )
+                2 -> InviteScreen()
+                3 -> ProfileScreen()
+            }
+        }
+    }
+}
+
+data class BottomNavItem(
+    val title: String,
+    val icon: ImageVector
+)
+
+@Composable
+fun EarnScreen() {
+    var selectedTab by remember { mutableStateOf("لك") }
+    val categories = listOf(
+        "لك",
+        "الاستطلاعات",
+        "ألعاب",
+        "المهام"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground)
+            .verticalScroll(rememberScrollState()) // تم التعديل هنا للتمرير العمودي السليم
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CardColor)
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "رصيدك الحالي",
+                        color = TextMuted,
+                        fontSize = 14.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "$0.67",
+                            color = TextWhite,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Gold)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "VIP",
+                                color = Color.Black,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(BackgroundBottom),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = "المحفظة",
+                        tint = Gold,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "اكتشف طرق الربح",
+                color = TextWhite,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "أكمل المهام واجمع المكافآت",
+                color = TextMuted,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { category ->
+                    val isSelected = selectedTab == category
+
+                    Button(
+                        onClick = { selectedTab = category },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) Gold else CardColor,
+                            contentColor = if (isSelected) Color.Black else TextWhite
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = 16.dp,
+                            vertical = 8.dp
+                        )
+                    ) {
+                        Text(
+                            text = category,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = when (selectedTab) {
+                    "الاستطلاعات" -> "الاستطلاعات المتاحة"
+                    "ألعاب" -> "الألعاب والمكافآت"
+                    "المهام" -> "المهام المتاحة"
+                    else -> "مقترحة لك"
+                },
+                color = TextWhite,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            when (selectedTab) {
+                "الاستطلاعات" -> {
+                    RewardCard(
+                        title = "استطلاع رأي سريع",
+                        provider = "CPX Research",
+                        reward = "$0.81",
+                    )
+                }
+
+                "ألعاب" -> {
+                    RewardCard(
+                        title = "العب واربح",
+                        provider = "ألعاب ومكافآت",
+                        reward = "مكافآت",
+                    )
+                }
+
+                "المهام" -> {
+                    RewardCard(
+                        title = "أكمل مهمتك",
+                        provider = "مهام يومية",
+                        reward = "+ نقاط",
+                    )
+                }
+
+                else -> {
+                    RewardCard(
+                        title = "استطلاع رأي سريع",
+                        provider = "CPX Research",
+                        reward = "$0.81",
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    RewardCard(
+                        title = "اكتشف الألعاب",
+                        provider = "ألعاب ومكافآت",
+                        reward = "+ نقاط",
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RewardCard(
+    title: String,
+    provider: String,
+    reward: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = CardColor
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(BackgroundBottom),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AttachMoney,
+                        contentDescription = null,
+                        tint = Gold,
+                        modifier = Modifier.size(25.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = title,
+                        color = TextWhite,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    Text(
+                        text = provider,
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = reward,
+                color = SuccessGreen,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun StatCard(title: String, value: String, modifier: Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = CardColor
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                color = TextMuted,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                color = Gold,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun PlaceholderScreen(
+    title: String,
+    subtitle: String,
+    icon: ImageVector
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardColor),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier.size(76.dp).clip(CircleShape).background(BackgroundBottom),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = icon, contentDescription = null, tint = Gold, modifier = Modifier.size(38.dp))
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(text = title, color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(text = subtitle, color = TextMuted, fontSize = 14.sp, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+package com.alphorixy.cashevo
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+
+val BackgroundTop = Color(0xFF0F2027)
+val BackgroundMiddle = Color(0xFF203A43)
+val BackgroundBottom = Color(0xFF2C5364)
+val CardColor = Color(0xFF1E3038)
+val Gold = Color(0xFFFFD700)
+val TextWhite = Color(0xFFFFFFFF)
+val TextMuted = Color(0xFFB0BEC5)
+val SuccessGreen = Color(0xFF51CF66)
+
+val AppBackground = Brush.verticalGradient(
+    colors = listOf(
+        BackgroundTop,
+        BackgroundMiddle,
+        BackgroundBottom
+    )
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Gold,
+                    onPrimary = Color.Black,
+                    secondary = BackgroundBottom,
+                    background = BackgroundTop,
+                    surface = CardColor,
+                    onSurface = TextWhite
+                )
+            ) {
+                MainDashboardScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun MainDashboardScreen() {
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val coroutineScope = rememberCoroutineScope()
+
+    // 🌟 رصيد المستخدم الموحد الذي يتحدث بين الشاشات فور إتمام المهام
+    var userBalance by remember { mutableStateOf(0.67) }
+    val minWithdrawal = 5.00
+
+    val items = listOf(
+        BottomNavItem("يكسب", Icons.Default.AttachMoney),
+        BottomNavItem("المحفظة", Icons.Default.AccountBalanceWallet),
+        BottomNavItem("دعوة", Icons.Default.Group),
+        BottomNavItem("ملفي الشخصي", Icons.Default.Person)
+    )
+
+    Scaffold(
+        containerColor = BackgroundTop,
+        bottomBar = {
+            NavigationBar(
+                containerColor = BackgroundTop,
+                contentColor = TextWhite,
+                tonalElevation = 0.dp
+            ) {
+                items.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = item.title,
+                                fontSize = 11.sp
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Gold,
+                            selectedTextColor = Gold,
+                            unselectedIconColor = TextMuted,
+                            unselectedTextColor = TextMuted,
+                            indicatorColor = BackgroundMiddle
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) { page ->
+            when (page) {
+                0 -> EarnScreen(
+                    currentBalance = userBalance,
+                    onTaskCompleted = { reward -> userBalance += reward }
+                )
+                1 -> WalletScreen(
+                    currentBalance = userBalance,
+                    minWithdrawal = minWithdrawal
+                )
+                2 -> InviteScreen()
+                3 -> ProfileScreen()
+            }
+        }
+    }
+}
+
+data class BottomNavItem(
+    val title: String,
+    val icon: ImageVector
+)
+
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+package com.alphorixy.cashevo
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+
+
+val BackgroundTop = Color(0xFF0F2027)
+val BackgroundMiddle = Color(0xFF203A43)
+val BackgroundBottom = Color(0xFF2C5364)
+val CardColor = Color(0xFF1E3038)
+val Gold = Color(0xFFFFD700)
+val TextWhite = Color(0xFFFFFFFF)
+val TextMuted = Color(0xFFB0BEC5)
+val SuccessGreen = Color(0xFF51CF66)
+
+val AppBackground = Brush.verticalGradient(
+    colors = listOf(
+        BackgroundTop,
+        BackgroundMiddle,
+        BackgroundBottom
+    )
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Gold,
+                    onPrimary = Color.Black,
+                    secondary = BackgroundBottom,
+                    background = BackgroundTop,
+                    surface = CardColor,
+                    onSurface = TextWhite
+                )
+            ) {
+                MainDashboardScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun MainDashboardScreen() {
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val coroutineScope = rememberCoroutineScope()
+
+    // متغير الرصيد المحلي المتزامن مع السرفر
+    var userBalance by remember { mutableStateOf(0.67) }
+    val minWithdrawal = 5.00
+
+    // الاتصال بقاعدة بيانات Firestore وسحب بيانات المستخدم (معرف مؤقت لـ شاكر)
+    val db = remember { FirebaseFirestore.getInstance() }
+    val userId = "shakir_user_01"
+
+    // جلب الرصيد الحقيقي من سيرفر جوجل عند فتح التطبيق لأول مرة
+    LaunchedEffect(Unit) {
+        db.collection("users").document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val serverBalance = document.getDouble("balance")
+                    if (serverBalance != null) {
+                        userBalance = serverBalance
+                    }
+                } else {
+                    // إذا كان المستند غير موجود على السرفر، يتم إنشاؤه بالرصيد الابتدائي
+                    val initialData = mapOf("balance" to 0.67)
+                    db.collection("users").document(userId).set(initialData)
+                }
+            }
+    }
+
+    val items = listOf(
+        BottomNavItem("يكسب", Icons.Default.AttachMoney),
+        BottomNavItem("المحفظة", Icons.Default.AccountBalanceWallet),
+        BottomNavItem("دعوة", Icons.Default.Group),
+        BottomNavItem("ملفي الشخصي", Icons.Default.Person)
+    )
+
+    Scaffold(
+        containerColor = BackgroundTop,
+        bottomBar = {
+            NavigationBar(
+                containerColor = BackgroundTop,
+                contentColor = TextWhite,
+                tonalElevation = 0.dp
+            ) {
+                items.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = item.title,
+                                fontSize = 11.sp
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Gold,
+                            selectedTextColor = Gold,
+                            unselectedIconColor = TextMuted,
+                            unselectedTextColor = TextMuted,
+                            indicatorColor = BackgroundMiddle
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) { page ->
+            when (page) {
+                0 -> EarnScreen(
+                    currentBalance = userBalance,
+                    onTaskCompleted = { reward ->
+                        userBalance += reward
+                        // 🔒 حفظ وتحديث الرصيد مباشرة في سيرفر جوجل سحابياً لمنع التلاعب
+                        db.collection("users").document(userId)
+                            .update("balance", userBalance)
+                    }
+                )
+                1 -> WalletScreen(
+                    currentBalance = userBalance,
+                    minWithdrawal = minWithdrawal
+                )
+                2 -> InviteScreen()
+                3 -> ProfileScreen()
+            }
+        }
+    }
+}
+
+data class BottomNavItem(
+    val title: String,
+    val icon: ImageVector
+)
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
+}
+
+android {
+    namespace = "com.alphorixy.cashevo"
+    compileSdk {
+        version = release(37)
+    }
+
+    defaultConfig {
+        applicationId = "com.alphorixy.cashevo"
+        minSdk = 24
+        targetSdk = 37
+        versionCode = 1
+        versionName = "1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            optimization {
+                enable = true
+                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        compose = true
+    }
+}
+
+dependencies {
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    testImplementation(libs.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.junit)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation(platform("com.google.firebase:firebase-bom:35.1.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-crashlytics")
+}
+
+
+
+package com.alphorixy.cashevo
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+
+val BackgroundTop = Color(0xFF0F2027)
+val BackgroundMiddle = Color(0xFF203A43)
+val BackgroundBottom = Color(0xFF2C5364)
+val CardColor = Color(0xFF1E3038)
+val Gold = Color(0xFFFFD700)
+val TextWhite = Color(0xFFFFFFFF)
+val TextMuted = Color(0xFFB0BEC5)
+val SuccessGreen = Color(0xFF51CF66)
+
+val AppBackground = Brush.verticalGradient(
+    colors = listOf(BackgroundTop, BackgroundMiddle, BackgroundBottom)
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Gold,
+                    onPrimary = Color.Black,
+                    secondary = BackgroundBottom,
+                    background = BackgroundTop,
+                    surface = CardColor,
+                    onSurface = TextWhite
+                )
+            ) {
+                MainDashboardScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun MainDashboardScreen() {
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val coroutineScope = rememberCoroutineScope()
+
+    var userBalance by remember { mutableStateOf(0.67) }
+    val minWithdrawal = 5.00
+
+    val db = remember { FirebaseFirestore.getInstance() }
+    val auth = remember { FirebaseAuth.getInstance() }
+    var userId by remember { mutableStateOf<String?>(null) }
+
+    // 1. تسجيل الدخول تلقائياً بشكل مجهول للحصول على معرف حقيقي وفريد للجهاز
+    LaunchedEffect(Unit) {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            userId = currentUser.uid
+        } else {
+            auth.signInAnonymously()
+                .addOnSuccessListener { result ->
+                    userId = result.user?.uid
+                }
+        }
+    }
+
+    // 2. جلب رصيد المستخدم الفعلي من السرفر بناءً على معرفه الفريد
+    LaunchedEffect(userId) {
+        userId?.let { id ->
+            db.collection("users").document(id).get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val serverBalance = document.getDouble("balance")
+                        if (serverBalance != null) {
+                            userBalance = serverBalance
+                        }
+                    } else {
+                        val initialData = mapOf("balance" to 0.67)
+                        db.collection("users").document(id).set(initialData)
+                    }
+                }
+        }
+    }
+
+    val items = listOf(
+        BottomNavItem("يكسب", Icons.Default.AttachMoney),
+        BottomNavItem("المحفظة", Icons.Default.AccountBalanceWallet),
+        BottomNavItem("دعوة", Icons.Default.Group),
+        BottomNavItem("ملفي الشخصي", Icons.Default.Person)
+    )
+
+    Scaffold(
+        containerColor = BackgroundTop,
+        bottomBar = {
+            NavigationBar(
+                containerColor = BackgroundTop,
+                contentColor = TextWhite,
+                tonalElevation = 0.dp
+            ) {
+                items.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                        },
+                        icon = { Icon(imageVector = item.icon, contentDescription = item.title) },
+                        label = { Text(text = item.title, fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Gold,
+                            selectedTextColor = Gold,
+                            unselectedIconColor = TextMuted,
+                            unselectedTextColor = TextMuted,
+                            indicatorColor = BackgroundMiddle
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) { page ->
+            when (page) {
+                0 -> EarnScreen(
+                    currentBalance = userBalance,
+                    onTaskCompleted = { reward ->
+                        userBalance += reward
+                        // 3. تحديث الحفظ سحابياً في مستند المستخدم الخاص حصرياً
+                        userId?.let { id ->
+                            db.collection("users").document(id)
+                                .update("balance", userBalance)
+                        }
+                    }
+                )
+                1 -> WalletScreen(currentBalance = userBalance, minWithdrawal = minWithdrawal)
+                2 -> InviteScreen()
+                3 -> ProfileScreen()
+            }
+        }
+    }
+}
+
+data class BottomNavItem(val title: String, val icon: ImageVector)
+
+
+
+
+package com.alphorixy.cashevo
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+// تعريف نموذج البيانات هنا ليكون مرئياً داخل هذا الملف
+data class TaskItem(
+    val title: String,
+    val provider: String,
+    val rewardText: String,
+    val rewardValue: Double,
+    val category: String,
+    val actionUrl: String
+)
+
+@Composable
+fun EarnScreen(
+    currentBalance: Double,
+    onTaskCompleted: (Double) -> Unit
+) {
+    var selectedTab by remember { mutableStateOf("لك") }
+    var completedTaskMessage by remember { mutableStateOf<String?>(null) }
+    val categories = listOf("لك", "الاستطلاعات", "ألعاب", "المهام")
+
+    val allTasks = listOf(
+        TaskItem("استطلاع رأي سريع", "CPX Research", "+$0.50", 0.50, "الاستطلاعات", "https://cpx-research.com"),
+        TaskItem("استطلاع الدخل اليومي", "BitLabs", "+$0.30", 0.30, "الاستطلاعات", "https://bitlabs.ai"),
+        TaskItem("العب وصل المستوى 10", "Delta Force Game", "+$1.00", 1.00, "ألعاب", "https://play.google.com"),
+        TaskItem("متابعة قناة التليجرام", "Cash Evo Official", "+$0.10", 0.10, "المهام", "https://telegram.org")
+    )
+
+    val filteredTasks = if (selectedTab == "لك") allTasks else allTasks.filter { it.category == selectedTab }
+
+    LazyColumn(
+        modifier = Modifierv
+            .fillMaxSize()
+            .background(AppBackground),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        // 1. بطاقة الرصيد العلوي
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CardColor)
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(text = "رصيدك الحالي", color = TextMuted, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "$${String.format("%.2f", currentBalance)}",
+                            color = TextWhite,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Gold)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(text = "VIP", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(BackgroundBottom),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = "المحفظة",
+                        tint = Gold,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // 2. عناوين القسم
+        item {
+            Text(text = "اكتشف طرق الربح", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(text = "أكمل المهام واجمع المكافآت الفورية", color = TextMuted, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(18.dp))
+        }
+
+        // 3. شريط الفلاتر الأفقي
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { category ->
+                    val isSelected = selectedTab == category
+                    Button(
+                        onClick = { selectedTab = category },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) Gold else CardColor
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(text = category, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            // تم تصحيح اسم اللون هنا إلى TextWhite
+            Text(text = "المهام المتاحة", color = TextWhite, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // 4. قائمة المهام التفاعلية السريعة
+        items(filteredTasks) { task ->
+            RewardCard(
+                title = task.title,
+                provider = task.provider,
+                reward = task.rewardText,
+                onClick = {
+                    onTaskCompleted(task.rewardValue)
+                    completedTaskMessage = "🎉 مبروك! تمت إضافة ${task.rewardText} إلى رصيدك بنجاح."
+                }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // 5. رسالة النجاح إن وجدت
+        if (completedTaskMessage != null) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = SuccessGreen.copy(alpha = 0.2f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = completedTaskMessage!!,
+                        color = SuccessGreen,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RewardCard(
+    title: String,
+    provider: String,
+    reward: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(BackgroundBottom),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AttachMoney,
+                        contentDescription = null,
+                        tint = Gold,
+                        modifier = Modifier.size(25.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(text = title, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(text = provider, color = TextMuted, fontSize = 12.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = reward,
+                color = SuccessGreen,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+
+package com.alphorixy.cashevo
+
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Task
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+data class TaskItem(
+    val id: String,
+    val title: String,
+    val description: String,
+    val reward: Double,
+    val icon: ImageVector,
+    val type: TaskType,
+    val tabCategory: Int // 0: المكافأة والفيديو, 1: الاستطلاعات, 2: إكمال مهام
+)
+
+enum class TaskType {
+    DAILY_REWARD,
+    REWARDED_VIDEO,
+    SURVEY_OFFER,
+    COMPLETE_TASK
+}
+
+@Composable
+fun EarnScreen(
+    currentBalance: Double,
+    onTaskCompleted: (Double) -> Unit
+) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    // حالة التبويب النشط
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("المكافأة والفيديو", "الاستطلاعات", "إكمال مهام")
+
+    // إنشاء تهيئة مدير الإعلانات
+    val adManager = remember { RewardedAdManager(context) }
+
+    LaunchedEffect(Unit) {
+        adManager.loadAd()
+    }
+
+    // المهام مقسمة ومصنفة حسب التبويبات الثلاثة
+    val tasks = listOf(
+        TaskItem("1", "المكافأة اليومية", "احصل على هدية الدخول اليومية", 0.10, Icons.Default.CardGiftcard, TaskType.DAILY_REWARD, 0),
+        TaskItem("2", "فيديو إعلاني حقيقي", "شاهد إعلان فيديو كاملاً واكسب نقاطاً", 0.25, Icons.Default.PlayCircle, TaskType.REWARDED_VIDEO, 0),
+        TaskItem("3", "استطلاع رأي حقيقي", "أجب عن استبيان الرأي الخارجي واكسب المكافأة", 0.50, Icons.Default.Assignment, TaskType.SURVEY_OFFER, 1),
+        TaskItem("4", "إكمال مهام التطبيقات", "قم بتثبيت التطبيقات وأتمم التحديات", 1.00, Icons.Default.Task, TaskType.COMPLETE_TASK, 2)
+    )
+
+    // تصفية المهام بناءً على التبويب المختار
+    val filteredTasks = tasks.filter { it.tabCategory == selectedTab }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground)
+            .padding(16.dp)
+    ) {
+        // بطاقة الرصيد مع أيقونة المحفظة بجانب القيمة
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardColor),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "رصيدك السحابي الحالي", color = TextMuted, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = Gold,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "$${String.format("%.2f", currentBalance)}",
+                        color = Gold,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // شريط التبويبات الثلاثة أسفل الرصيد مباشرة
+        ScrollableTabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.Transparent,
+            contentColor = Gold,
+            edgePadding = 0.dp,
+            indicator = {}
+        ) {
+            tabs.forEachIndexed { index, title ->
+                val selected = selectedTab == index
+                Tab(
+                    selected = selected,
+                    onClick = { selectedTab = index },
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .background(
+                            color = if (selected) Gold else CardColor,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        color = if (selected) Color.Black else TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = when (selectedTab) {
+                0 -> "المكافآت والفيديوهات المتاحة"
+                1 -> "استطلاعات الرأي المتاحة"
+                else -> "مهام وتطبيقات إضافية"
+            },
+            color = TextWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // عرض المهام الخاصة بالتبويب الحالي فقط
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(filteredTasks) { task ->
+                TaskCard(
+                    task = task,
+                    onAction = {
+                        when (task.type) {
+                            TaskType.REWARDED_VIDEO -> {
+                                activity?.let {
+                                    adManager.showAd(it) { reward ->
+                                        onTaskCompleted(reward)
+                                    }
+                                }
+                            }
+                            TaskType.SURVEY_OFFER -> {
+                                // فتح رابط استطلاع الرأي الحقيقي في المتصفح الخارجي
+                                val surveyIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
+                                context.startActivity(surveyIntent)
+                                // إرسال المكافأة سحابياً بعد فتح الاستطلاع أو العودة له
+                                onTaskCompleted(task.reward)
+                            }
+                            TaskType.DAILY_REWARD, TaskType.COMPLETE_TASK -> {
+                                onTaskCompleted(task.reward)
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskCard(task: TaskItem, onAction: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = task.icon,
+                contentDescription = null,
+                tint = Gold,
+                modifier = Modifier.size(40.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = task.title, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = task.description, color = TextMuted, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "+$${task.reward}", color = SuccessGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(text = "إنجاز", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+
+package com.alphorixy.cashevo
+
+import android.app.Activity
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Task
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+
+data class TaskItem(
+    val id: String,
+    val title: String,
+    val description: String,
+    val reward: Double,
+    val icon: ImageVector,
+    val type: TaskType,
+    val tabCategory: Int // 0: المكافأة والفيديو, 1: الاستطلاعات, 2: إكمال مهام
+)
+
+enum class TaskType {
+    DAILY_REWARD,
+    REWARDED_VIDEO,
+    SURVEY_OFFER,
+    COMPLETE_TASK
+}
+
+@Composable
+fun EarnScreen(
+    currentBalance: Double,
+    onTaskCompleted: (Double) -> Unit
+) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    // حالة التبويب النشط
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("المكافأة والفيديو", "الاستطلاعات", "إكمال مهام")
+
+    // متغير للتحكم بعرض شاشة استطلاع الرأي الداخلية (WebView)
+    var activeSurveyUrl by remember { mutableStateOf<String?>(null) }
+    var pendingSurveyReward by remember { mutableStateOf(0.0) }
+
+    // إنشاء تهيئة مدير الإعلانات
+    val adManager = remember { RewardedAdManager(context) }
+
+    LaunchedEffect(Unit) {
+        adManager.loadAd()
+    }
+
+    // المهام مقسمة ومصنفة حسب التبويبات الثلاثة
+    val tasks = listOf(
+        TaskItem("1", "المكافأة اليومية", "احصل على هدية الدخول اليومية", 0.10, Icons.Default.CardGiftcard, TaskType.DAILY_REWARD, 0),
+        TaskItem("2", "فيديو إعلاني حقيقي", "شاهد إعلان فيديو كاملاً واكسب نقاطاً", 0.25, Icons.Default.PlayCircle, TaskType.REWARDED_VIDEO, 0),
+        TaskItem("3", "استطلاع رأي تفاعلي", "أجب عن الأسئلة بدقة واحصل على المكافأة بعد الانتهاء", 0.50, Icons.Default.Assignment, TaskType.SURVEY_OFFER, 1),
+        TaskItem("4", "إكمال مهام التطبيقات", "قم بتثبيت التطبيقات وأتمم التحديات", 1.00, Icons.Default.Task, TaskType.COMPLETE_TASK, 2)
+    )
+
+    // تصفية المهام بناءً على التبويب المختار
+    val filteredTasks = tasks.filter { it.tabCategory == selectedTab }
+
+    // إذا كان المستخدم داخل صفحة الاستطلاع الداخلي، نعرض متصفح الـ WebView مباشرة داخل التطبيق
+    if (activeSurveyUrl != null) {
+        // السماح بالعودة عبر زر الهاتف الخلفي لإغلاق الاستطلاع ومنح المكافأة عند الإنجاز
+        BackHandler {
+            activeSurveyUrl = null
+            // منح المكافأة سحابياً فقط بعد العودة/إتمام الاستطلاع
+            onTaskCompleted(pendingSurveyReward)
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundTop)
+                .padding(top = 24.dp)
+        ) {
+            // شريط علوي صغير للرجوع يدوياً ومنح المكافأة
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        activeSurveyUrl = null
+                        onTaskCompleted(pendingSurveyReward)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Gold)
+                ) {
+                    Text(text = "إنهاء الاستطلاع واستلام المكافأة", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+                Text(text = "أكمل الاستطلاع للنهاية", color = TextMuted, fontSize = 12.sp)
+            }
+
+            // عرض صفحات الاستطلاع داخل التطبيق بشكل حقيقي وآمن
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        webViewClient = WebViewClient()
+                        settings.javaScriptEnabled = true
+                        loadUrl(activeSurveyUrl!!)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    } else {
+        // الشاشة الاعتيادية للمهام والتبويبات
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppBackground)
+                .padding(16.dp)
+        ) {
+            // بطاقة الرصيد مع أيقونة المحفظة بجانب القيمة
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "رصيدك السحابي الحالي", color = TextMuted, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = Gold,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "$${String.format("%.2f", currentBalance)}",
+                            color = Gold,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // شريط التبويبات الثلاثة أسفل الرصيد مباشرة
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = Gold,
+                edgePadding = 0.dp,
+                indicator = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    val selected = selectedTab == index
+                    Tab(
+                        selected = selected,
+                        onClick = { selectedTab = index },
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(
+                                color = if (selected) Gold else CardColor,
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            color = if (selected) Color.Black else TextWhite,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = when (selectedTab) {
+                    0 -> "المكافآت والفيديوهات المتاحة"
+                    1 -> "استطلاعات الرأي المتاحة"
+                    else -> "مهام وتطبيقات إضافية"
+                },
+                color = TextWhite,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // عرض المهام الخاصة بالتبويب الحالي فقط
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(filteredTasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onAction = {
+                            when (task.type) {
+                                TaskType.REWARDED_VIDEO -> {
+                                    activity?.let {
+                                        adManager.showAd(it) { reward ->
+                                            onTaskCompleted(reward)
+                                        }
+                                    }
+                                }
+                                TaskType.SURVEY_OFFER -> {
+                                    // فتح الاستطلاع الحقيقي داخل متصفح التطبيق الداخلي (WebView)
+                                    pendingSurveyReward = task.reward
+                                    activeSurveyUrl = "https://www.google.com" // ضع رابط مزود الاستطلاعات الحقيقي هنا لاحقاً
+                                }
+                                TaskType.DAILY_REWARD, TaskType.COMPLETE_TASK -> {
+                                    onTaskCompleted(task.reward)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskCard(task: TaskItem, onAction: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = task.icon,
+                contentDescription = null,
+                tint = Gold,
+                modifier = Modifier.size(40.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = task.title, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = task.description, color = TextMuted, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "+$${task.reward}", color = SuccessGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(text = "إنجاز", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+
+
+
+package com.alphorixy.cashevo
+
+import android.app.Activity
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Task
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.firebase.auth.FirebaseAuth
+
+data class TaskItem(
+    val id: String,
+    val title: String,
+    val description: String,
+    val reward: Double,
+    val icon: ImageVector,
+    val type: TaskType,
+    val tabCategory: Int // 0: المكافأة والفيديو, 1: الاستطلاعات, 2: إكمال مهام
+)
+
+enum class TaskType {
+    DAILY_REWARD,
+    REWARDED_VIDEO,
+    SURVEY_OFFER,
+    COMPLETE_TASK
+}
+
+@Composable
+fun EarnScreen(
+    currentBalance: Double,
+    onTaskCompleted: (Double) -> Unit
+) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    // جلب معرف المستخدم الحالي من Firebase Auth أو استخدام المعرف التجريبي
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "test_user_1"
+
+    // حالة التبويب النشط
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("المكافأة والفيديو", "الاستطلاعات", "إكمال مهام")
+
+    // متغير للتحكم بعرض شاشة استطلاع الرأي الداخلية (WebView) لعروض CPX
+    var activeSurveyUrl by remember { mutableStateOf<String?>(null) }
+
+    // إنشاء تهيئة مدير الإعلانات
+    val adManager = remember { RewardedAdManager(context) }
+
+    LaunchedEffect(Unit) {
+        adManager.loadAd()
+    }
+
+    // المهام مقسمة ومصنفة حسب التبويبات الثلاثة
+    val tasks = listOf(
+        TaskItem("1", "المكافأة اليومية", "احصل على هدية الدخول اليومية", 0.10, Icons.Default.CardGiftcard, TaskType.DAILY_REWARD, 0),
+        TaskItem("2", "فيديو إعلاني حقيقي", "شاهد إعلان فيديو كاملاً واكسب نقاطاً", 0.25, Icons.Default.PlayCircle, TaskType.REWARDED_VIDEO, 0),
+        TaskItem("3", "استطلاعات CPX Research", "أجب عن استطلاعات الرأي واربح أرباحاً حقيقية", 0.50, Icons.Default.Assignment, TaskType.SURVEY_OFFER, 1),
+        TaskItem("4", "إكمال مهام التطبيقات", "قم بتثبيت التطبيقات وأتمم التحديات", 1.00, Icons.Default.Task, TaskType.COMPLETE_TASK, 2)
+    )
+
+    // تصفية المهام بناءً على التبويب المختار
+    val filteredTasks = tasks.filter { it.tabCategory == selectedTab }
+
+    // إذا كان المستخدم داخل صفحة الاستطلاع الداخلي، نعرض متصفح الـ WebView محملًا برابط CPX Offerwall الصحيح
+    if (activeSurveyUrl != null) {
+        BackHandler {
+            activeSurveyUrl = null
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundTop)
+                .padding(top = 24.dp)
+        ) {
+            // شريط علوي للرجوع وتسكير متصفح الاستطلاعات
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { activeSurveyUrl = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Gold)
+                ) {
+                    Text(text = "إغلاق الاستطلاعات والعودة", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+                Text(text = "تضاف الأرباح تلقائياً لحسابك", color = TextMuted, fontSize = 12.sp)
+            }
+
+            // عرض حائط عروض CPX داخل متصفح التطبيق الآمن
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        webViewClient = WebViewClient()
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.databaseEnabled = true
+                        settings.loadWithOverviewMode = true
+                        settings.useWideViewPort = true
+                        loadUrl(activeSurveyUrl!!)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    } else {
+        // الشاشة الاعتيادية للمهام والتبويبات
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppBackground)
+                .padding(16.dp)
+        ) {
+            // بطاقة الرصيد مع أيقونة المحفظة
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "رصيدك السحابي الحالي", color = TextMuted, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = Gold,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "$${String.format("%.2f", currentBalance)}",
+                            color = Gold,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // شريط التبويبات الثلاثة
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = Gold,
+                edgePadding = 0.dp,
+                indicator = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    val selected = selectedTab == index
+                    Tab(
+                        selected = selected,
+                        onClick = { selectedTab = index },
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(
+                                color = if (selected) Gold else CardColor,
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            color = if (selected) Color.Black else TextWhite,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = when (selectedTab) {
+                    0 -> "المكافآت والفيديوهات المتاحة"
+                    1 -> "استطلاعات الرأي المتاحة"
+                    else -> "مهام وتطبيقات إضافية"
+                },
+                color = TextWhite,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // عرض المهام الخاصة بالتبويب الحالي فقط
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(filteredTasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onAction = {
+                            when (task.type) {
+                                TaskType.REWARDED_VIDEO -> {
+                                    activity?.let {
+                                        adManager.showAd(it) { reward ->
+                                            onTaskCompleted(reward)
+                                        }
+                                    }
+                                }
+                                TaskType.SURVEY_OFFER -> {
+                                    // استخدام النطاق الصحيح offers.cpx-research.com مع تمرير App ID ومعرف المستخدم
+                                    activeSurveyUrl = "https://offers.cpx-research.com/index.php?app_id=37703&ext_user_id=$currentUserId"
+                                }
+                                TaskType.DAILY_REWARD, TaskType.COMPLETE_TASK -> {
+                                    onTaskCompleted(task.reward)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskCard(task: TaskItem, onAction: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = task.icon,
+                contentDescription = null,
+                tint = Gold,
+                modifier = Modifier.size(40.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = task.title, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = task.description, color = TextMuted, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "+$${task.reward}", color = SuccessGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(text = "إنجاز", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+
+
+
+package com.alphorixy.cashevo
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun WalletScreen(
+    currentBalance: Double,
+    minWithdrawal: Double
+) {
+    var showWithdrawDialog by remember { mutableStateOf(false) }
+    val progress = (currentBalance / minWithdrawal).toFloat().coerceIn(0f, 1f)
+
+    // 🚀 استخدام LazyColumn بدلاً من Column العادية لضمان السرعة وسلاسة السحب بين الشاشات
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        // 1. عنوان الشاشة
+        item {
+            Text(
+                text = "المحفظة والأرباح",
+                color = TextWhite,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // 2. بطاقة الرصيد وشريط التقدم للسحب
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(text = "الرصيد المتاح للسحب", color = TextMuted, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "$${String.format("%.2f", currentBalance)}",
+                                color = Gold,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .background(BackgroundBottom),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalanceWallet,
+                                contentDescription = null,
+                                tint = Gold,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "الحد الأدنى للسحب: $$minWithdrawal", color = TextMuted, fontSize = 12.sp)
+                            Text(
+                                text = "${(progress * 100).toInt()}%",
+                                color = Gold,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = Gold,
+                            trackColor = BackgroundBottom
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = { showWithdrawDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "طلب سحب الأرباح",
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // 3. طرق السحب المتاحة
+        item {
+            Text(
+                text = "طرق السحب المتاحة",
+                color = TextWhite,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PaymentMethodCard(name = "PayPal", icon = "🅿️", modifier = Modifier.weight(1f))
+                PaymentMethodCard(name = "USDT", icon = "🪙", modifier = Modifier.weight(1f))
+                PaymentMethodCard(name = "BaridiMob", icon = "🇩🇿", modifier = Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // 4. سجل المعاملات
+        item {
+            Text(
+                text = "سجل المعاملات السابقة",
+                color = TextWhite,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "لا توجد معاملات سابقة حتى الآن",
+                        color = TextMuted,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    }
+
+    // نافذة تنبيه السحب
+    if (showWithdrawDialog) {
+        AlertDialog(
+            onDismissRequest = { showWithdrawDialog = false },
+            containerColor = CardColor,
+            title = {
+                Text(
+                    text = "تنبيه السحب",
+                    color = TextWhite,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (currentBalance >= minWithdrawal) "رصيدك كافٍ! سيتم تحويل الطلب لمعالجة الدفع."
+                    else "عذراً، رصيدك ($${String.format("%.2f", currentBalance)}) أقل من الحد الأدنى للسحب ($$minWithdrawal). أكمل المزيد من المهام!",
+                    color = TextMuted,
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showWithdrawDialog = false }) {
+                    Text(
+                        text = "حسناً",
+                        color = Gold,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun PaymentMethodCard(name: String, icon: String, modifier: Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = icon, fontSize = 24.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = name,
+                color = TextWhite,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+
+package com.alphorixy.cashevo
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Cookie
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+
+@Composable
+fun ProfileScreen() {
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = auth.currentUser
+
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var activeDialogContent by remember { mutableStateOf<String?>(null) } // للتحكم بالنوافذ الداخلية للسياسات والشروط
+
+    var userName by remember { mutableStateOf(currentUser?.displayName ?: "مستخدم Cash Evo") }
+    var userEmail by remember { mutableStateOf(currentUser?.email ?: "user@cashevo.app") }
+    var userId by remember { mutableStateOf(currentUser?.uid ?: "ID: #849201") }
+
+    // جلب معلومات المستخدم الحقيقية من فايربيس
+    LaunchedEffect(currentUser?.uid) {
+        currentUser?.uid?.let { uid ->
+            db.collection("users").document(uid).get().addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val name = document.getString("fullName") ?: document.getString("name")
+                    if (!name.isNullOrBlank()) userName = name
+                    val email = document.getString("email")
+                    if (!email.isNullOrBlank()) userEmail = email
+                }
+            }
+        }
+    }
+
+    // 🚀 استخدام LazyColumn لضمان سرعة فائقة وسلاسة مطلقة عند السحب بين الشاشات[cite: 10]
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        // 1. الشريط العلوي مع زر الإعدادات
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "ملفي الشخصي",
+                    color = TextWhite,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                IconButton(
+                    onClick = { showSettingsDialog = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "الإعدادات",
+                        tint = TextWhite,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // 2. بطاقة بيانات المستخدم الرئيسية الحقيقية
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(BackgroundBottom),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = Gold,
+                            modifier = Modifier.size(45.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = userName,
+                        color = TextWhite,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = userEmail,
+                        color = TextMuted,
+                        fontSize = 13.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BackgroundBottom)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "ID: #${userId.take(8)}",
+                            color = Gold,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // 3. قائمة الخيارات والخدمات والسياسات والدعم
+        item {
+            Text(
+                text = "الحساب والدعم والسياسات",
+                color = TextWhite,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    ProfileMenuItem(
+                        icon = Icons.Default.Help,
+                        title = "الدعم الفني والتعليمات",
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cashevo.app/support"))
+                            context.startActivity(intent)
+                        }
+                    )
+                    Divider(color = BackgroundBottom, thickness = 1.dp)
+
+                    ProfileMenuItem(
+                        icon = Icons.Default.Security,
+                        title = "سياسة الخصوصية",
+                        onClick = { activeDialogContent = "privacy" }
+                    )
+                    Divider(color = BackgroundBottom, thickness = 1.dp)
+
+                    ProfileMenuItem(
+                        icon = Icons.Default.Description,
+                        title = "شروط الاستخدام (Terms of Service)",
+                        onClick = { activeDialogContent = "terms" }
+                    )
+                    Divider(color = BackgroundBottom, thickness = 1.dp)
+
+                    ProfileMenuItem(
+                        icon = Icons.Default.Cookie,
+                        title = "سياسة ملفات تعريف الارتباط (Cookies)",
+                        onClick = { activeDialogContent = "cookies" }
+                    )
+                    Divider(color = BackgroundBottom, thickness = 1.dp)
+
+                    ProfileMenuItem(
+                        icon = Icons.Default.ExitToApp,
+                        title = "تسجيل الخروج",
+                        textColor = Color(0xFFFF6B6B),
+                        iconColor = Color(0xFFFF6B6B),
+                        onClick = {
+                            auth.signOut()
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // 4. تذييل التطبيق: زر اختيار اللغة، أيقونات التواصل الاجتماعي، حقوق الملكية ورقم الإصدار
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // زر اختيار اللغة (English / العربية)
+                Surface(
+                    modifier = Modifier.clip(RoundedCornerShape(20.dp)),
+                    color = CardColor,
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "🇬🇧", fontSize = 16.sp)
+                        Text(text = "English / العربية", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // أيقونات التواصل الاجتماعي (مطابقة تماماً للصورة: X، Facebook، Instagram، Reddit، Discord، YouTube، Fav/Star)[cite: 11]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SocialCircleIcon(symbol = "X") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com"))) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialCircleIcon(symbol = "FB") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://facebook.com"))) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialCircleIcon(symbol = "INS") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com"))) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialCircleIcon(symbol = "REDDIT") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://reddit.com"))) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialCircleIcon(symbol = "DIS") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.com"))) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialCircleIcon(symbol = "YT") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://youtube.com"))) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SocialCircleIcon(symbol = "TG") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://telegram.com"))) }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // حقوق الملكية وإصدار التطبيق تحتها مباشرة
+                Text(
+                    text = "© Cash Evo 2026. All rights reserved.",
+                    color = TextMuted,
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "App Version: v1.0.0",
+                    color = Gold,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(30.dp))
+            }
+        }
+    }
+
+    // نافذة خيارات الإعدادات العلويّة
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            containerColor = CardColor,
+            title = {
+                Text(text = "الإعدادات", color = TextWhite, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(text = "• الحساب المسجل: $userEmail", color = TextMuted, fontSize = 14.sp)
+                    Text(text = "• الإشعارات والتنبيهات: مفعّلة", color = TextMuted, fontSize = 14.sp)
+                    Text(text = "• لغة التطبيق: الإنجليزية / العربية", color = TextMuted, fontSize = 14.sp)
+                    Text(text = "• إصدار التطبيق: v1.0.0", color = TextMuted, fontSize = 14.sp)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSettingsDialog = false }) {
+                    Text(text = "إغلاق", color = Gold, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    // النافذة الداخلية لعرض شروط الاستخدام، الخصوصية، وملفات تعريف الارتباط
+    if (activeDialogContent != null) {
+        val titleText = when (activeDialogContent) {
+            "privacy" -> "سياسة الخصوصية"
+            "terms" -> "شروط الاستخدام (Terms of Service)"
+            "cookies" -> "سياسة ملفات تعريف الارتباط (Cookies)"
+            else -> "معلومات"
+        }
+
+        val bodyText = when (activeDialogContent) {
+            "privacy" -> "نحن في تطبيق Cash Evo نلتزم بحماية بياناتك الشخصية والخصوصية بشكل كامل. يتم جمع البيانات فقط لتحسين تجربة الأرباح والمدفوعات ولن يتم مشاركة بياناتك مع أي طرف ثالث."
+            "terms" -> "باستخدامك لتطبيق Cash Evo، فإنك توافق على الالتزام بشروط وأحكام الاستخدام الخاصة بالمنصة. أي محاولة لاستخدام طرق احتيالية أو برامج روبوت (Bots) ستؤدي إلى إيقاف الحساب فوراً."
+            "cookies" -> "نستخدم ملفات تعريف الارتباط (Cookies) لتحسين وتخصيص تجربتك داخل التطبيق وتذكر تفضيلاتك وجلسات التسجيل الخاصة بك بشكل آمن."
+            else -> ""
+        }
+
+        AlertDialog(
+            onDismissRequest = { activeDialogContent = null },
+            containerColor = CardColor,
+            title = {
+                Text(text = titleText, color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            },
+            text = {
+                Text(text = bodyText, color = TextMuted, fontSize = 14.sp, lineHeight = 20.sp)
+            },
+            confirmButton = {
+                Button(
+                    onClick = { activeDialogContent = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Gold)
+                ) {
+                    Text(text = "حسناً", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ProfileMenuItem(
+    icon: ImageVector,
+    title: String,
+    textColor: Color = TextWhite,
+    iconColor: Color = Gold,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(14.dp))
+            Text(
+                text = title,
+                color = textColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun SocialCircleIcon(platform: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(CardColor)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        val tint = Color.White
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(18.dp)) {
+            when (platform) {
+                "X" -> {
+                    drawLine(tint, Offset(0f, 0f), Offset(size.width, size.height), strokeWidth = 3.5f)
+                    drawLine(tint, Offset(0f, size.height), Offset(size.width, 0f), strokeWidth = 3.5f)
+                }
+                "FB" -> {
+                    drawRect(tint, size = Size(size.width, size.height), style = Stroke(width = 2f))
+                    val path = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(size.width * 0.65f, size.height)
+                        lineTo(size.width * 0.65f, size.height * 0.55f)
+                        lineTo(size.width * 0.8f, size.height * 0.55f)
+                        lineTo(size.width * 0.8f, size.height * 0.35f)
+                        lineTo(size.width * 0.65f, size.height * 0.35f)
+                        lineTo(size.width * 0.65f, size.height * 0.25f)
+                        quadraticBezierTo(size.width * 0.65f, size.height * 0.2f, size.width * 0.75f, size.height * 0.2f)
+                        lineTo(size.width * 0.8f, size.height * 0.2f)
+                        lineTo(size.width * 0.8f, 0f)
+                        lineTo(size.width * 0.6f, 0f)
+                        quadraticBezierTo(size.width * 0.4f, 0f, size.width * 0.4f, size.height * 0.3f)
+                        lineTo(size.width * 0.4f, size.height * 0.35f)
+                        lineTo(size.width * 0.25f, size.height * 0.35f)
+                        lineTo(size.width * 0.25f, size.height * 0.55f)
+                        lineTo(size.width * 0.4f, size.height * 0.55f)
+                        lineTo(size.width * 0.4f, size.height)
+                        close()
+                    }
+                    drawPath(path, color = tint)
+                }
+                "INS" -> {
+                    drawRoundRect(tint, size = size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f), style = Stroke(width = 2f))
+                    drawCircle(tint, radius = size.width / 4f, style = Stroke(width = 2f))
+                    drawCircle(tint, radius = 1.5f, center = Offset(size.width * 0.75f, size.height * 0.25f))
+                }
+                "REDDIT" -> {
+                    drawCircle(tint, radius = size.width / 2f, style = Stroke(width = 2f))
+                    drawCircle(tint, radius = size.width * 0.15f, center = Offset(size.width * 0.35f, size.height * 0.45f))
+                    drawCircle(tint, radius = size.width * 0.15f, center = Offset(size.width * 0.65f, size.height * 0.45f))
+                }
+                "DIS" -> {
+                    drawOval(tint, size = Size(size.width, size.height * 0.8f), style = Stroke(width = 2f))
+                }
+                "YT" -> {
+                    drawRoundRect(tint, size = size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f, 5f), style = Stroke(width = 2f))
+                    val path = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(size.width * 0.38f, size.height * 0.3f)
+                        lineTo(size.width * 0.7f, size.height * 0.5f)
+                        lineTo(size.width * 0.38f, size.height * 0.7f)
+                        close()
+                    }
+                    drawPath(path, color = tint)
+                }
+                "TG" -> {
+                    val path = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(0f, size.height * 0.5f)
+                        lineTo(size.width, 0f)
+                        lineTo(size.width * 0.3f, size.height)
+                        lineTo(size.width * 0.5f, size.height * 0.6f)
+                        close()
+                    }
+                    drawPath(path, color = tint)
+                }
+            }
+        }
+    }
+}
+
+
+
