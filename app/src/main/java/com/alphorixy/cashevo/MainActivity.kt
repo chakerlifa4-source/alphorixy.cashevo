@@ -71,7 +71,7 @@ fun MainDashboardScreen() {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
 
-    var userBalance by remember { mutableStateOf(0.67) }
+    var userBalance by remember { mutableStateOf(0.0000) }
     val minWithdrawal = 5.00
 
     val db = remember { FirebaseFirestore.getInstance() }
@@ -153,10 +153,17 @@ fun MainDashboardScreen() {
                     currentBalance = userBalance,
                     currentUserId = userId,
                     onTaskCompleted = { reward ->
-                        userBalance += reward
                         userId?.let { id ->
-                            db.collection("users").document(id)
-                                .update("balance", userBalance)
+                            WalletRepository.addRewardTransaction(
+                                userId = id,
+                                reward = reward,
+                                taskName = "إكمال مهمة إعلانية/تفاعلية",
+                                onSuccess = { updatedBalance ->
+                                    userBalance = updatedBalance
+                                },
+                                onError = { exception ->
+                                }
+                            )
                         }
                     }
                 )

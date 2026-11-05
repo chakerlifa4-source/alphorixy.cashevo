@@ -173,7 +173,7 @@ fun EarnScreen(
 
     val tasks = listOf(
         TaskItem("1", "المكافأة الأسبوعية", "احصل على هدية المكافأة الأسبوعية من السحابة", 0.06, Icons.Default.CardGiftcard, TaskType.WEEKLY_REWARD, 0),
-        TaskItem("2", "فيديو إعلاني حقيقي", "شاهد إعلان فيديو كاملاً واكسب نقاطاً", 0.25, Icons.Default.PlayCircle, TaskType.REWARDED_VIDEO, 0),
+        TaskItem("2", "فيديو إعلاني حقيقي", "شاهد إعلان فيديو كاملاً واكسب نقاطاً", 0.05, Icons.Default.PlayCircle, TaskType.REWARDED_VIDEO, 0),
         TaskItem("3", "استطلاعات CPX Research", "أجب عن استطلاعات الرأي واربح أرباحاً حقيقية", 0.50, Icons.Default.Assignment, TaskType.SURVEY_OFFER, 1),
         TaskItem("4", "إكمال مهام التطبيقات", "قم بتثبيت التطبيقات وأتمم التحديات", 1.00, Icons.Default.Task, TaskType.COMPLETE_TASK, 2)
     )

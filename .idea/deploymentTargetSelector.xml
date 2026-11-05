@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="App">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-11-02T23:17:47.647619082Z">
+        <DropdownSelection timestamp="2026-11-04T13:04:59.371608018Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=146804058E000397" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/home/chaker/.android/avd/Medium_Phone.avd" />
             </handle>
           </Target>
         </DropdownSelection>

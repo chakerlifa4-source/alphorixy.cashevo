@@ -69,9 +69,8 @@ fun SplashScreen() {
             checkInternetConnection(context)
         }
 
-        // ضمان بقاء شاشة الإقلاع لمدة 3 ثوانٍ (3000 ملي ثانية) على الأقل
         val elapsedTime = System.currentTimeMillis() - startTime
-        if (elapsedTime < 3000) {
+        if (elapsedTime < 2000) {
             delay(3000 - elapsedTime)
         }
 
@@ -141,7 +140,9 @@ fun SplashScreen() {
                 painter = painterResource(id = R.drawable.alphorixy),
                 contentDescription = "شعار التطبيق",
                 modifier = Modifier
-                    .size(450.dp)
+                    .fillMaxWidth(0.80f)
+                    .aspectRatio(1f)
+                    .padding(horizontal = 8.dp)
             )
         }
 

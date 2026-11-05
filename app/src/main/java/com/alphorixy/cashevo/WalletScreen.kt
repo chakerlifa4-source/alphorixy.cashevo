@@ -1,5 +1,6 @@
 package com.alphorixy.cashevo
 
+import android.R.attr.fontWeight
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -450,7 +451,6 @@ fun WalletScreen(
         )
     }
 
-    // النافذة الثانية: نافذة منبثقة لمراجعة معلومات الطلب وتأكيدها نهائياً
     if (showConfirmDialog) {
         val amount = withdrawAmount.toDoubleOrNull() ?: 0.0
         AlertDialog(
@@ -478,38 +478,42 @@ fun WalletScreen(
                     onClick = {
                         isLoading = true
 
-                        val withdrawalData = mapOf(
-                            "userId" to currentUserId,
-                            "fullName" to fullName,
-                            "accountNumber" to accountNumber,
-                            "amount" to amount,
-                            "paymentMethod" to selectedMethod,
-                            "status" to "pending",
-                            "createdAt" to FieldValue.serverTimestamp()
-                        )
+                        val userRef = db.collection("users").document(currentUserId)
+                        val withdrawalRef = db.collection("withdrawals").document()
 
-                        // حفظ الطلب في سحابة فايربيس
-                        db.collection("withdrawals").add(withdrawalData)
-                            .addOnSuccessListener {
-                                // خصم المبلغ من رصيد المستخدم في سحابة فايربيس
-                                val newBalance = currentBalance - amount
-                                db.collection("users").document(currentUserId)
-                                    .update("balance", newBalance)
-                                    .addOnSuccessListener {
-                                        isLoading = false
-                                        showConfirmDialog = false
-                                        Toast.makeText(context, "تم إرسال طلب السحب بنجاح وخصم المبلغ من رصيدك!", Toast.LENGTH_LONG).show()
-                                        onBalanceUpdated() // تحديث الرصيد فوريًا داخل التطبيق
-                                    }
-                                    .addOnFailureListener {
-                                        isLoading = false
-                                        Toast.makeText(context, "حدث خطأ أثناء تحديث رصيد المحفظة بالسحابة", Toast.LENGTH_SHORT).show()
-                                    }
+                        db.runTransaction { transaction ->
+                            val snapshot = transaction.get(userRef)
+                            val currentDbBalance = snapshot.getDouble("balance") ?: 0.0
+
+                            if (currentDbBalance < amount) {
+                                throw IllegalStateException("عذراً، رصيدك الحالي غير كافٍ أو تم تغييره.")
                             }
-                            .addOnFailureListener { e ->
-                                isLoading = false
-                                Toast.makeText(context, "فشل إرسال الطلب: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
+
+                            val newBalance = currentDbBalance - amount
+
+                            transaction.update(userRef, "balance", newBalance)
+
+                            val withdrawalData = mapOf(
+                                "userId" to currentUserId,
+                                "fullName" to fullName,
+                                "accountNumber" to accountNumber,
+                                "amount" to amount,
+                                "paymentMethod" to selectedMethod,
+                                "status" to "pending",
+                                "createdAt" to FieldValue.serverTimestamp()
+                            )
+                            transaction.set(withdrawalRef, withdrawalData)
+
+                            newBalance
+                        }.addOnSuccessListener { _ ->
+                            isLoading = false
+                            showConfirmDialog = false
+                            Toast.makeText(context, "تم إرسال طلب السحب بنجاح وخصم المبلغ من رصيدك!", Toast.LENGTH_LONG).show()
+                            onBalanceUpdated()
+                        }.addOnFailureListener { e ->
+                            isLoading = false
+                            Toast.makeText(context, "فشل إتمام العملية: ${e.localizedMessage ?: "حدث خطأ غير معروف"}", Toast.LENGTH_LONG).show()
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Gold),
                     enabled = !isLoading

@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // دالة مساعدة للتحقق من أن المستخدم مسجل الدخول
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // دالة مساعدة للتحقق من ملكية المستخدم للمستند
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. مجموعة users: كل مستخدم يمكنه الوصول لمستنده الخاص فقط
+    match /users/{userId} {
+      allow read, update, delete: if isOwner(userId);
+      // السماح بإنشاء الحساب لأول مرة شريطة مطابقة معرف المصادقة
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 2. مجموعة task_history (سجل المهام وأرباحها):
+    match /task_history/{historyId} {
+      // السماح للمستخدم بقراءة سجلاته الخاصة فقط
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // السماح بإنشاء السجل شريطة أن يكون مرتبطاً بـ uid الخاص بالمستخدم حصراً
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // يُمنع منعاً باتاً تعديل أو حذف سجلات المهام من جانب العميل
+      allow update, delete: if false;
+    }
+
+    // 3. مجموعة withdrawals (طلبات السحب المالية):
+    match /withdrawals/{withdrawalId} {
+      // السماح للمستخدم بقراءة طلبات السحب الخاصة به فقط
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // السماح بإنشاء طلب سحب جديد بشروط أمنية صارمة:
+      allow create: if isAuthenticated()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.amount is number
+                    && request.resource.data.amount > 0
+                    && request.resource.data.status == "pending"; // الحالة الأولية يجب أن تكون قيد الانتظار حصراً
+
+      // يُمنع منعاً باتاً تعديل أو حذف طلبات السحب من تطبيق العميل (التعديل للقبول/الرفض يتم عبر لوحة الأدمن أو Cloud Functions فقط)
+      allow update, delete: if false;
+    }
+  }
+}

@@ -99,35 +99,43 @@ fun LoginContent() {
         successMessage = null
     }
 
-    // ميزة اختفاء رسائل الخطأ والنجاح تلقائياً بعد 4 ثوانٍ
     LaunchedEffect(errorMessage, successMessage) {
         if (errorMessage != null || successMessage != null) {
-            delay(4000L)
+            delay(2500L)
             errorMessage = null
             successMessage = null
         }
     }
 
-    // حفظ بيانات المستخدم في Firestore
     fun saveUserToFirestore(user: FirebaseUser, providerType: String, customName: String? = null) {
         val userRef = db.collection("users").document(user.uid)
         userRef.get().addOnSuccessListener { document ->
             val nameToSave = customName ?: user.displayName ?: "مستخدم Cash Evo"
-            val userData = hashMapOf(
-                "uid" to user.uid,
-                "email" to (user.email ?: ""),
-                "phoneNumber" to (user.phoneNumber ?: ""),
-                "displayName" to nameToSave,
-                "points" to 0,
-                "balanceUSD" to 0.0,
-                "provider" to providerType,
-                "createdAt" to System.currentTimeMillis()
-            )
-            userRef.set(userData)
+
+            if (!document.exists()) {
+                val initialUserData = hashMapOf(
+                    "uid" to user.uid,
+                    "email" to (user.email ?: ""),
+                    "phoneNumber" to (user.phoneNumber ?: ""),
+                    "displayName" to nameToSave,
+                    "points" to 0,
+                    "balance" to 0.0,
+                    "provider" to providerType,
+                    "createdAt" to System.currentTimeMillis()
+                )
+                userRef.set(initialUserData)
+            } else {
+                val metadataUpdate = hashMapOf(
+                    "displayName" to nameToSave,
+                    "provider" to providerType,
+                    "lastLoginAt" to System.currentTimeMillis()
+                )
+                userRef.set(metadataUpdate, com.google.firebase.firestore.SetOptions.merge())
+            }
         }
     }
 
-    // الانتقال للواجهة الرئيسية
+
     fun navigateToMain(user: FirebaseUser, provider: String, customName: String? = null) {
         saveUserToFirestore(user, provider, customName)
         val intent = Intent(context, MainActivity::class.java)
