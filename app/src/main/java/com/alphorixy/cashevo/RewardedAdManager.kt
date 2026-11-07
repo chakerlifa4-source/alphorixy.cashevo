@@ -2,22 +2,28 @@ package com.alphorixy.cashevo
 
 import android.app.Activity
 import android.content.Context
+import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions
 
 class RewardedAdManager(private val context: Context) {
     private var rewardedAd: RewardedAd? = null
 
-    // تحميل الإعلان في الخلفية (نستخدم Test Ad Unit ID الخاص بجوجل)
+    companion object {
+        // TODO: استبدله بمعرّف وحدة الإعلان المكافئ (Rewarded) الخاصة بك من AdMob.
+        // المعرّف الحالي تجريبي تابع لجوجل: لن تصل منه استدعاءات SSV إلى السيرفر الخاص بك.
+        const val REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+    }
+
     fun loadAd(onAdLoaded: () -> Unit = {}) {
-        val adRequest = AdRequest.Builder().build()
-        // هذا معرف إعلان تجريبي حقيقي للفيديو بمكافأة من جوجل
         RewardedAd.load(
             context,
-            "ca-app-pub-3940256099942544/5224354917",
-            adRequest,
+            REWARDED_AD_UNIT_ID,
+            AdRequest.Builder().build(),
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
@@ -31,18 +37,41 @@ class RewardedAdManager(private val context: Context) {
         )
     }
 
-    // عرض الإعلان للمستخدم وإرجاع النتيجة
-    fun showAd(activity: Activity, onRewardEarned: (Double) -> Unit) {
-        if (rewardedAd != null) {
-            rewardedAd?.show(activity) { rewardItem ->
-                // عند مشاهدة الإعلان كاملاً يحصل المستخدم على المكافأة (0.25$)
-                onRewardEarned(0.25)
-                // إعادة تحميل إعلان آخر جديد للمرة القادمة
+    /**
+     * عرض الإعلان. لا يُمنح أي رصيد من هنا:
+     * المكافأة تُضاف من السيرفر بعد تحقق AdMob (SSV) باستخدام userId المُمرَّر.
+     * onRewardEarned للواجهة فقط (رسالة شكر مثلاً).
+     */
+    fun showAd(
+        activity: Activity,
+        userId: String,
+        onNotReady: () -> Unit = {},
+        onRewardEarned: () -> Unit
+    ) {
+        val ad = rewardedAd
+        if (ad == null) {
+            loadAd()
+            onNotReady()
+            return
+        }
+
+        // يجب ضبطه قبل العرض؛ AdMob يرسله للسيرفر كـ user_id
+        ad.setServerSideVerificationOptions(
+            ServerSideVerificationOptions.Builder().setUserId(userId).build()
+        )
+
+        ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+            override fun onAdDismissedFullScreenContent() {
+                loadAd() // تحميل إعلان جديد بعد الإغلاق
+            }
+
+            override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 loadAd()
             }
-        } else {
-            // إعادة التحميل إذا لم يكن جاهزاً بعد
-            loadAd()
         }
+
+        // الإعلان الواحد لا يُعرض إلا مرة واحدة: نفرّغ المرجع فوراً لمنع الضغط المزدوج
+        rewardedAd = null
+        ad.show(activity) { onRewardEarned() }
     }
 }

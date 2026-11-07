@@ -33,6 +33,8 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
@@ -81,13 +83,12 @@ fun AdMobBanner(modifier: Modifier = Modifier) {
 @Composable
 fun EarnScreen(
     currentBalance: Double,
-    currentUserId: String?,
-    onTaskCompleted: (Double) -> Unit
+    currentUserId: String?
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
 
-    val activeUserId = currentUserId ?: FirebaseAuth.getInstance().currentUser?.uid ?: "test_user_1"
+    val activeUserId = currentUserId ?: FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val db = FirebaseFirestore.getInstance()
 
     var selectedTab by remember { mutableStateOf(0) }
@@ -99,6 +100,7 @@ fun EarnScreen(
     var isLoadingHistory by remember { mutableStateOf(false) }
 
     fun fetchTaskHistory() {
+        if (activeUserId.isEmpty()) return
         isLoadingHistory = true
         db.collection("users").document(activeUserId)
             .collection("task_history")
@@ -116,53 +118,18 @@ fun EarnScreen(
             }
     }
 
-    fun claimWeeklyRewardServerSide() {
-        val userRef = db.collection("users").document(activeUserId)
-
-        db.runTransaction { transaction ->
-            val snapshot = transaction.get(userRef)
-            val dbBalance = snapshot.getDouble("balance") ?: currentBalance
-            val lastClaimTime = snapshot.getLong("lastWeeklyReward") ?: 0L
-            val currentTime = System.currentTimeMillis()
-            val oneWeekMillis = 7L * 24 * 60 * 60 * 1000
-
-            if (currentTime - lastClaimTime < oneWeekMillis) {
-                throw Exception("عذراً، لم يمر أسبوع بعد على استلامك آخر مكافأة أسبوعية.")
+    // المكافأة الأسبوعية تُمنح من Cloud Function فقط، والرصيد يتحدّث تلقائياً عبر مستمع Firestore في MainActivity
+    fun claimWeeklyReward() {
+        FirebaseFunctions.getInstance()
+            .getHttpsCallable("claimWeeklyReward")
+            .call()
+            .addOnSuccessListener {
+                Toast.makeText(context, "تم استلام المكافأة الأسبوعية بنجاح (+0.06$)", Toast.LENGTH_SHORT).show()
             }
-
-            val rewardAmount = 0.06
-            val newBalance = dbBalance + rewardAmount
-
-            transaction.update(userRef, "balance", newBalance)
-            transaction.update(userRef, "lastWeeklyReward", currentTime)
-
-            val historyRef = userRef.collection("task_history").document()
-            val historyData = mapOf(
-                "title" to "المكافأة الأسبوعية",
-                "reward" to rewardAmount,
-                "timestamp" to currentTime,
-                "type" to "WEEKLY_REWARD"
-            )
-            transaction.set(historyRef, historyData)
-
-            newBalance
-        }.addOnSuccessListener { newBalance ->
-            onTaskCompleted(newBalance - currentBalance)
-            Toast.makeText(context, "تم استلام المكافأة الأسبوعية بنجاح (+0.06$)", Toast.LENGTH_SHORT).show()
-        }.addOnFailureListener { e ->
-            Toast.makeText(context, e.message ?: "فشل استلام المكافأة", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    fun logTaskCompletionToFirestore(taskTitle: String, rewardAmount: Double, taskType: String) {
-        val historyRef = db.collection("users").document(activeUserId).collection("task_history")
-        val historyData = hashMapOf(
-            "title" to taskTitle,
-            "reward" to rewardAmount,
-            "timestamp" to System.currentTimeMillis(),
-            "type" to taskType
-        )
-        historyRef.add(historyData)
+            .addOnFailureListener { e ->
+                val msg = (e as? FirebaseFunctionsException)?.message ?: "فشل استلام المكافأة"
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
     }
 
     val adManager = remember { RewardedAdManager(context) }
@@ -253,7 +220,7 @@ fun EarnScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Spacer(modifier = Modifier.width(32.dp))
-                            Text(text = "الرصيد", color = TextMuted, fontSize = 14.sp)
+                            Text(text = "الرصيد", color = TextMuted, fontSize = 28.sp)
 
                             IconButton(
                                 onClick = {
@@ -345,16 +312,26 @@ fun EarnScreen(
                     items(filteredTasks) { task ->
                         TaskCard(
                             task = task,
-                            onAction = {
+                            onAction = onAction@{
+                                if (activeUserId.isEmpty()) {
+                                    Toast.makeText(context, "جارٍ تسجيل الدخول، أعد المحاولة بعد لحظات", Toast.LENGTH_SHORT).show()
+                                    return@onAction
+                                }
                                 when (task.type) {
                                     TaskType.WEEKLY_REWARD -> {
-                                        claimWeeklyRewardServerSide()
+                                        claimWeeklyReward()
                                     }
                                     TaskType.REWARDED_VIDEO -> {
                                         activity?.let {
-                                            adManager.showAd(it) { reward ->
-                                                onTaskCompleted(reward)
-                                                logTaskCompletionToFirestore(task.title, reward, "REWARDED_VIDEO")
+                                            // لا نمنح أي رصيد من العميل: المكافأة تُضاف من السيرفر بعد تحقق AdMob (SSV)
+                                            adManager.showAd(
+                                                activity = it,
+                                                userId = activeUserId,
+                                                onNotReady = {
+                                                    Toast.makeText(context, "الإعلان غير جاهز بعد، حاول بعد لحظات", Toast.LENGTH_SHORT).show()
+                                                }
+                                            ) {
+                                                Toast.makeText(context, "سيُضاف الرصيد بعد التحقق من الإعلان", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }

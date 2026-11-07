@@ -90,21 +90,19 @@ fun MainDashboardScreen() {
         }
     }
 
-    LaunchedEffect(userId) {
-        userId?.let { id ->
-            db.collection("users").document(id).get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val serverBalance = document.getDouble("balance")
-                        if (serverBalance != null) {
-                            userBalance = serverBalance
-                        }
-                    } else {
-                        val initialData = mapOf("balance" to 0.000)
-                        db.collection("users").document(id).set(initialData)
-                    }
+    DisposableEffect(userId) {
+        val registration = userId?.let { id ->
+            val ref = db.collection("users").document(id)
+            ref.addSnapshotListener { doc, _ ->
+                if (doc == null) return@addSnapshotListener
+                if (doc.exists()) {
+                    userBalance = doc.getDouble("balance") ?: 0.0
+                } else if (!doc.metadata.isFromCache) {
+                    ref.set(mapOf("balance" to 0.0))
                 }
+            }
         }
+        onDispose { registration?.remove() }
     }
 
     val items = listOf(
@@ -151,21 +149,7 @@ fun MainDashboardScreen() {
             when (page) {
                 0 -> EarnScreen(
                     currentBalance = userBalance,
-                    currentUserId = userId,
-                    onTaskCompleted = { reward ->
-                        userId?.let { id ->
-                            WalletRepository.addRewardTransaction(
-                                userId = id,
-                                reward = reward,
-                                taskName = "إكمال مهمة إعلانية/تفاعلية",
-                                onSuccess = { updatedBalance ->
-                                    userBalance = updatedBalance
-                                },
-                                onError = { exception ->
-                                }
-                            )
-                        }
-                    }
+                    currentUserId = userId
                 )
 
                 1 -> WalletScreen(currentBalance = userBalance, minWithdrawal = minWithdrawal)
