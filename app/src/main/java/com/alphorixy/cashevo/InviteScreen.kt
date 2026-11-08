@@ -36,11 +36,9 @@ fun InviteScreen() {
     var referredCount by remember { mutableStateOf(0) }
     var referralEarnings by remember { mutableStateOf(0.0) }
 
-    // 🚀 جلب رمز الدعوة والإحصائيات الحقيقية من فايربيس بشكل حي
     LaunchedEffect(currentUserId) {
         val userRef = db.collection("users").document(currentUserId)
 
-        // جلب رمز الدعوة والأرباح الخاصة بالمستخدم
         userRef.addSnapshotListener { snapshot, _ ->
             if (snapshot != null && snapshot.exists()) {
                 val code = snapshot.getString("referralCode")
@@ -52,29 +50,20 @@ fun InviteScreen() {
                     referralCode = generatedCode
                 }
                 referralEarnings = snapshot.getDouble("referralEarnings") ?: 0.0
+
+                referredCount = snapshot.getLong("referralCount")?.toInt() ?: 0
             }
         }
-
-        // جلب عدد الأصدقاء المدعوين الحقيقيين من فايربيس
-        db.collection("users")
-            .whereEqualTo("invitedBy", currentUserId)
-            .addSnapshotListener { snapshot, _ ->
-                if (snapshot != null) {
-                    referredCount = snapshot.size()
-                }
-            }
     }
 
     val referralLink = "https://cashevo.app/invite?ref=$referralCode"
 
-    // 🚀 استخدام LazyColumn لضمان سلاسة السحب وسرعة الأداء بين الشاشات
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground),
         contentPadding = PaddingValues(16.dp)
     ) {
-        // 1. عنوان الشاشة
         item {
             Text(
                 text = "دعوة الأصدقاء",
@@ -85,7 +74,6 @@ fun InviteScreen() {
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // 2. بطاقة الترويج وعرض المكافآت
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -136,7 +124,6 @@ fun InviteScreen() {
             Spacer(modifier = Modifier.height(20.dp))
         }
 
-        // 3. بطاقة رمز الدعوة والنسخ
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -179,7 +166,6 @@ fun InviteScreen() {
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // 4. زر مشاركة الرابط
         item {
             Button(
                 onClick = {
@@ -206,7 +192,6 @@ fun InviteScreen() {
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // 5. إحصائيات الإحالات الحقيقية
         item {
             Text(
                 text = "إحصائيات الإحالات",

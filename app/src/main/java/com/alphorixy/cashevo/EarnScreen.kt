@@ -34,12 +34,12 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
-import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 data class TaskItem(
     val id: String,
@@ -52,6 +52,7 @@ data class TaskItem(
 )
 
 data class TaskHistoryItem(
+    val userId: String = "",
     val title: String = "",
     val reward: Double = 0.0,
     val timestamp: Long = 0L,
@@ -65,7 +66,6 @@ enum class TaskType {
     COMPLETE_TASK
 }
 
-// مكون إعلان البنر الموحد
 @Composable
 fun AdMobBanner(modifier: Modifier = Modifier) {
     AndroidView(
@@ -73,7 +73,7 @@ fun AdMobBanner(modifier: Modifier = Modifier) {
         factory = { context ->
             AdView(context).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-2573504616567477/6040596401" //[cite: 14] معرف البنر الخاص بك
+                adUnitId = "ca-app-pub-2573504616567477/6040596401"
                 loadAd(AdRequest.Builder().build())
             }
         }
@@ -99,6 +99,20 @@ fun EarnScreen(
     var taskHistoryList by remember { mutableStateOf<List<TaskHistoryItem>>(emptyList()) }
     var isLoadingHistory by remember { mutableStateOf(false) }
 
+    // حالة لتخزين وقت آخر مكافأة أسبوعية مستلمة للمستخدم بشكل حقيقي من فايربيس
+    var lastWeeklyReward by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(activeUserId) {
+        if (activeUserId.isNotEmpty()) {
+            db.collection("users").document(activeUserId)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null && snapshot.exists()) {
+                        lastWeeklyReward = snapshot.getLong("lastWeeklyReward") ?: 0L
+                    }
+                }
+        }
+    }
+
     fun fetchTaskHistory() {
         if (activeUserId.isEmpty()) return
         isLoadingHistory = true
@@ -118,7 +132,6 @@ fun EarnScreen(
             }
     }
 
-    // المكافأة الأسبوعية تُمنح من Cloud Function فقط، والرصيد يتحدّث تلقائياً عبر مستمع Firestore في MainActivity
     fun claimWeeklyReward() {
         FirebaseFunctions.getInstance()
             .getHttpsCallable("claimWeeklyReward")
@@ -127,8 +140,13 @@ fun EarnScreen(
                 Toast.makeText(context, "تم استلام المكافأة الأسبوعية بنجاح (+0.06$)", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
-                val msg = (e as? FirebaseFunctionsException)?.message ?: "فشل استلام المكافأة"
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                val msg = e.message ?: "فشل استلام المكافأة"
+                val cleanMsg = if (msg.contains("INTERNAL")) {
+                    msg.substringAfterLast(": ").ifEmpty { "لم يحن موعد المكافأة الأسبوعية بعد." }
+                } else {
+                    msg
+                }
+                Toast.makeText(context, cleanMsg, Toast.LENGTH_LONG).show()
             }
     }
 
@@ -139,7 +157,7 @@ fun EarnScreen(
     }
 
     val tasks = listOf(
-        TaskItem("1", "المكافأة الأسبوعية", "احصل على هدية المكافأة الأسبوعية من السحابة", 0.06, Icons.Default.CardGiftcard, TaskType.WEEKLY_REWARD, 0),
+        TaskItem("1", "المكافأة الأسبوعية", "احصل على هدية المكافأة الأسبوعية المتجددة", 0.06, Icons.Default.CardGiftcard, TaskType.WEEKLY_REWARD, 0),
         TaskItem("2", "فيديو إعلاني حقيقي", "شاهد إعلان فيديو كاملاً واكسب نقاطاً", 0.05, Icons.Default.PlayCircle, TaskType.REWARDED_VIDEO, 0),
         TaskItem("3", "استطلاعات CPX Research", "أجب عن استطلاعات الرأي واربح أرباحاً حقيقية", 0.50, Icons.Default.Assignment, TaskType.SURVEY_OFFER, 1),
         TaskItem("4", "إكمال مهام التطبيقات", "قم بتثبيت التطبيقات وأتمم التحديات", 1.00, Icons.Default.Task, TaskType.COMPLETE_TASK, 2)
@@ -310,8 +328,28 @@ fun EarnScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     items(filteredTasks) { task ->
+                        val isWeeklyTask = task.type == TaskType.WEEKLY_REWARD
+                        val nextWeeklyMillis = lastWeeklyReward + (7L * 24 * 60 * 60 * 1000L)
+                        val isWeeklyReady = lastWeeklyReward == 0L || System.currentTimeMillis() >= nextWeeklyMillis
+
+                        val nextWeeklyDateFormatted = if (!isWeeklyReady) {
+                            SimpleDateFormat("yyyy/MM/dd - hh:mm a", LocalLocale.current.platformLocale).format(Date(nextWeeklyMillis))
+                        } else {
+                            null
+                        }
+
+                        val isEnabled = if (isWeeklyTask) isWeeklyReady else true
+                        val actionLabel = if (isWeeklyTask) {
+                            if (isWeeklyReady) "استلام (+0.06$)" else "إستلام"
+                        } else {
+                            "بدأ"
+                        }
+
                         TaskCard(
                             task = task,
+                            isEnabled = isEnabled,
+                            actionLabel = actionLabel,
+                            nextDateText = nextWeeklyDateFormatted,
                             onAction = onAction@{
                                 if (activeUserId.isEmpty()) {
                                     Toast.makeText(context, "جارٍ تسجيل الدخول، أعد المحاولة بعد لحظات", Toast.LENGTH_SHORT).show()
@@ -319,11 +357,14 @@ fun EarnScreen(
                                 }
                                 when (task.type) {
                                     TaskType.WEEKLY_REWARD -> {
-                                        claimWeeklyReward()
+                                        if (isWeeklyReady) {
+                                            claimWeeklyReward()
+                                        } else {
+                                            Toast.makeText(context, "لم يحن موعد المكافأة الأسبوعية بعد", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                     TaskType.REWARDED_VIDEO -> {
                                         activity?.let {
-                                            // لا نمنح أي رصيد من العميل: المكافأة تُضاف من السيرفر بعد تحقق AdMob (SSV)
                                             adManager.showAd(
                                                 activity = it,
                                                 userId = activeUserId,
@@ -392,10 +433,41 @@ fun EarnScreen(
             confirmButton = {}
         )
     }
+    fun logTaskCompletionToFirestore(
+        taskTitle: String,
+        rewardAmount: Double,
+        taskType: String
+    ) {
+        if (activeUserId.isEmpty()) return
+
+        val historyData = hashMapOf(
+            "userId" to activeUserId,
+            "title" to taskTitle,
+            "reward" to rewardAmount,
+            "timestamp" to System.currentTimeMillis(),
+            "type" to taskType
+        )
+
+        db.collection("users")
+            .document(activeUserId)
+            .collection("task_history")
+            .add(historyData)
+            .addOnSuccessListener {
+            }
+            .addOnFailureListener { e ->
+                println("Error logging task history: ${e.message}")
+            }
+    }
 }
 
 @Composable
-fun TaskCard(task: TaskItem, onAction: () -> Unit) {
+fun TaskCard(
+    task: TaskItem,
+    isEnabled: Boolean = true,
+    actionLabel: String = "بدأ",
+    nextDateText: String? = null,
+    onAction: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardColor),
@@ -424,14 +496,34 @@ fun TaskCard(task: TaskItem, onAction: () -> Unit) {
                 Text(text = task.description, color = TextMuted, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(text = "+$${task.reward}", color = SuccessGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+
+                if (!isEnabled && !nextDateText.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = " متاح في: $nextDateText",
+                        color = Gold,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             Button(
                 onClick = onAction,
-                colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                enabled = isEnabled,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isEnabled) Gold else Color(0xFF2C3E50),
+                    disabledContainerColor = Color(0xFF2C3E50),
+                    disabledContentColor = TextMuted
+                ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(text = "إنجاز", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(
+                    text = actionLabel,
+                    color = if (isEnabled) Color.Black else TextMuted,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
             }
         }
     }

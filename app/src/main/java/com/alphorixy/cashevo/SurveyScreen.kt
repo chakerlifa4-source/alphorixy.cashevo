@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// نموذج بيانات استطلاع الرأي
 data class SurveyItem(
     val id: String,
     val title: String,
@@ -36,7 +35,6 @@ fun SurveyScreen(
 ) {
     val context = LocalContext.current
 
-    // قائمة استطلاعات رأي حقيقية كمثال (يمكن ربطها لاحقاً بشبكات مثل CPX Research)
     val surveys = listOf(
         SurveyItem(
             id = "1",
@@ -163,7 +161,7 @@ fun SurveyCard(survey: SurveyItem, onStartSurvey: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = Gold),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(text = "ابدأ", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text(text = "بدأ", color = Color.Black, fontWeight = FontWeight.Bold)
             }
         }
     }
