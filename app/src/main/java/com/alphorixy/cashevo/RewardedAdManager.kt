@@ -14,9 +14,8 @@ class RewardedAdManager(private val context: Context) {
     private var rewardedAd: RewardedAd? = null
 
     companion object {
-        // TODO: استبدله بمعرّف وحدة الإعلان المكافئ (Rewarded) الخاصة بك من AdMob.
-        // المعرّف الحالي تجريبي تابع لجوجل: لن تصل منه استدعاءات SSV إلى السيرفر الخاص بك.
-        const val REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+        private const val TAG = "RewardedAdManager"
+        const val REWARDED_AD_UNIT_ID = "ca-app-pub-2573504616567477/معرفك_الحقيقي_هنا"
     }
 
     fun loadAd(onAdLoaded: () -> Unit = {}) {
@@ -37,11 +36,6 @@ class RewardedAdManager(private val context: Context) {
         )
     }
 
-    /**
-     * عرض الإعلان. لا يُمنح أي رصيد من هنا:
-     * المكافأة تُضاف من السيرفر بعد تحقق AdMob (SSV) باستخدام userId المُمرَّر.
-     * onRewardEarned للواجهة فقط (رسالة شكر مثلاً).
-     */
     fun showAd(
         activity: Activity,
         userId: String,
@@ -55,14 +49,13 @@ class RewardedAdManager(private val context: Context) {
             return
         }
 
-        // يجب ضبطه قبل العرض؛ AdMob يرسله للسيرفر كـ user_id
         ad.setServerSideVerificationOptions(
             ServerSideVerificationOptions.Builder().setUserId(userId).build()
         )
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
-                loadAd() // تحميل إعلان جديد بعد الإغلاق
+                loadAd()
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
@@ -70,7 +63,6 @@ class RewardedAdManager(private val context: Context) {
             }
         }
 
-        // الإعلان الواحد لا يُعرض إلا مرة واحدة: نفرّغ المرجع فوراً لمنع الضغط المزدوج
         rewardedAd = null
         ad.show(activity) { onRewardEarned() }
     }

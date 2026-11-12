@@ -64,7 +64,6 @@ fun SplashScreen() {
         isLoading = true
         val startTime = System.currentTimeMillis()
 
-        // فحص الاتصال بالإنترنت
         val netConnected = withContext(Dispatchers.IO) {
             checkInternetConnection(context)
         }
@@ -115,7 +114,6 @@ fun SplashScreen() {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(24.dp)
         ) {
-            // اسم التطبيق في الأعلى
             Text(
                 text = "Cash Evo",
                 color = Color.White,

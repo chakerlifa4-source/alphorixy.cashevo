@@ -99,7 +99,6 @@ fun EarnScreen(
     var taskHistoryList by remember { mutableStateOf<List<TaskHistoryItem>>(emptyList()) }
     var isLoadingHistory by remember { mutableStateOf(false) }
 
-    // حالة لتخزين وقت آخر مكافأة أسبوعية مستلمة للمستخدم بشكل حقيقي من فايربيس
     var lastWeeklyReward by remember { mutableStateOf(0L) }
 
     LaunchedEffect(activeUserId) {
@@ -213,7 +212,6 @@ fun EarnScreen(
                 .fillMaxSize()
                 .background(AppBackground)
         ) {
-            // إضافة إعلان البنر في أعلى الشاشة
             AdMobBanner(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
 
             Column(
@@ -238,7 +236,7 @@ fun EarnScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Spacer(modifier = Modifier.width(32.dp))
-                            Text(text = "الرصيد", color = TextMuted, fontSize = 28.sp)
+                            Text(text = "الرصيد", color = TextWhite, fontSize = 28.sp)
 
                             IconButton(
                                 onClick = {
