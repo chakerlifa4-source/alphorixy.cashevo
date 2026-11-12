@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -149,11 +150,11 @@ fun EarnScreen(
             }
     }
 
-    val adManager = remember { RewardedAdManager(context) }
-
-    LaunchedEffect(Unit) {
-        adManager.loadAd()
-    }
+    // تم إيقاف تحميل الإعلانات بالخلفية مؤقتاً لتوفير البيانات والبطارية
+    // val adManager = remember { RewardedAdManager(context) }
+    // LaunchedEffect(Unit) {
+    //     adManager.loadAd()
+    // }
 
     val tasks = listOf(
         TaskItem("1", "المكافأة الأسبوعية", "احصل على هدية المكافأة الأسبوعية المتجددة", 0.06, Icons.Default.CardGiftcard, TaskType.WEEKLY_REWARD, 0),
@@ -346,6 +347,7 @@ fun EarnScreen(
                         TaskCard(
                             task = task,
                             isEnabled = isEnabled,
+                            isDimmed = (task.type == TaskType.REWARDED_VIDEO), // تفعيل التأثير الباهت لمهمة الفيديو فقط
                             actionLabel = actionLabel,
                             nextDateText = nextWeeklyDateFormatted,
                             onAction = onAction@{
@@ -362,17 +364,7 @@ fun EarnScreen(
                                         }
                                     }
                                     TaskType.REWARDED_VIDEO -> {
-                                        activity?.let {
-                                            adManager.showAd(
-                                                activity = it,
-                                                userId = activeUserId,
-                                                onNotReady = {
-                                                    Toast.makeText(context, "الإعلان غير جاهز بعد، حاول بعد لحظات", Toast.LENGTH_SHORT).show()
-                                                }
-                                            ) {
-                                                Toast.makeText(context, "سيُضاف الرصيد بعد التحقق من الإعلان", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
+                                        Toast.makeText(context, "سوف يتم اضافة مهمة مشاهدة الاعلانات قريبا", Toast.LENGTH_SHORT).show()
                                     }
                                     TaskType.SURVEY_OFFER -> {
                                         activeOfferUrl = "https://offers.cpx-research.com/index.php?app_id=37703&ext_user_id=$activeUserId"
@@ -431,44 +423,24 @@ fun EarnScreen(
             confirmButton = {}
         )
     }
-    fun logTaskCompletionToFirestore(
-        taskTitle: String,
-        rewardAmount: Double,
-        taskType: String
-    ) {
-        if (activeUserId.isEmpty()) return
-
-        val historyData = hashMapOf(
-            "userId" to activeUserId,
-            "title" to taskTitle,
-            "reward" to rewardAmount,
-            "timestamp" to System.currentTimeMillis(),
-            "type" to taskType
-        )
-
-        db.collection("users")
-            .document(activeUserId)
-            .collection("task_history")
-            .add(historyData)
-            .addOnSuccessListener {
-            }
-            .addOnFailureListener { e ->
-                println("Error logging task history: ${e.message}")
-            }
-    }
 }
 
 @Composable
 fun TaskCard(
     task: TaskItem,
     isEnabled: Boolean = true,
+    isDimmed: Boolean = false, // خاصية المظهر الباهت
     actionLabel: String = "بدأ",
     nextDateText: String? = null,
     onAction: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardColor),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isDimmed) Modifier.alpha(0.6f) else Modifier), // جعل البطاقة باهتة إذا كانت متوقفة
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDimmed) Color(0xFF16252C) else CardColor
+        ),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -480,7 +452,7 @@ fun TaskCard(
             Icon(
                 imageVector = task.icon,
                 contentDescription = null,
-                tint = Gold,
+                tint = if (isDimmed) Color(0xFF78909C) else Gold,
                 modifier = Modifier.size(40.dp)
             )
 
@@ -489,11 +461,36 @@ fun TaskCard(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(text = task.title, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = task.title,
+                        color = if (isDimmed) TextMuted else TextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (isDimmed) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "(قريباً ⏳)",
+                            color = Color(0xFFFFA726),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = task.description, color = TextMuted, fontSize = 12.sp)
+                Text(
+                    text = if (isDimmed) "هذه المهمة قيد التطوير والتحديث حالياً" else task.description,
+                    color = TextMuted,
+                    fontSize = 12.sp
+                )
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(text = "+$${task.reward}", color = SuccessGreen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "+$${task.reward}",
+                    color = if (isDimmed) TextMuted else SuccessGreen,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
                 if (!isEnabled && !nextDateText.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -510,7 +507,7 @@ fun TaskCard(
                 onClick = onAction,
                 enabled = isEnabled,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isEnabled) Gold else Color(0xFF2C3E50),
+                    containerColor = if (isDimmed) Color(0xFF263238) else if (isEnabled) Gold else Color(0xFF2C3E50),
                     disabledContainerColor = Color(0xFF2C3E50),
                     disabledContentColor = TextMuted
                 ),
@@ -518,7 +515,7 @@ fun TaskCard(
             ) {
                 Text(
                     text = actionLabel,
-                    color = if (isEnabled) Color.Black else TextMuted,
+                    color = if (isDimmed) TextMuted else if (isEnabled) Color.Black else TextMuted,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
                 )

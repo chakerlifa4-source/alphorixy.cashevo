@@ -35,6 +35,9 @@ fun InviteScreen() {
     var referralCode by remember { mutableStateOf("CE-...") }
     var referredCount by remember { mutableStateOf(0) }
     var referralEarnings by remember { mutableStateOf(0.0) }
+    var hasUsedReferral by remember { mutableStateOf(false) }
+    var inputCode by remember { mutableStateOf("") }
+    var isApplyingCode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUserId) {
         val userRef = db.collection("users").document(currentUserId)
@@ -50,8 +53,8 @@ fun InviteScreen() {
                     referralCode = generatedCode
                 }
                 referralEarnings = snapshot.getDouble("referralEarnings") ?: 0.0
-
                 referredCount = snapshot.getLong("referralCount")?.toInt() ?: 0
+                hasUsedReferral = snapshot.getBoolean("hasUsedReferral") ?: false
             }
         }
     }
@@ -122,6 +125,105 @@ fun InviteScreen() {
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // بطاقة إدخال رمز دعوة صديق (تظهر فقط إذا لم يسبق للمستخدم إدخال رمز من قبل)
+        if (!hasUsedReferral) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CardColor),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "هل تمت دعوتك من قِبل صديق؟",
+                            color = TextWhite,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "أدخل رمز دعوة صديقك لتحصل على المكافأة وتفعيل النظام بنجاح",
+                            color = TextMuted,
+                            fontSize = 12.sp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = inputCode,
+                                onValueChange = { inputCode = it.uppercase() },
+                                placeholder = { Text("رمز الدعوة (مثل: CE-ABC123)", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Gold,
+                                    unfocusedBorderColor = TextMuted,
+                                    focusedTextColor = TextWhite,
+                                    unfocusedTextColor = TextWhite
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    if (inputCode.isBlank() || isApplyingCode) return@Button
+                                    isApplyingCode = true
+
+                                    db.collection("users")
+                                        .whereEqualTo("referralCode", inputCode.trim())
+                                        .get()
+                                        .addOnSuccessListener { query ->
+                                            if (query.isEmpty) {
+                                                isApplyingCode = false
+                                                Toast.makeText(context, "رمز الدعوة غير صحيح!", Toast.LENGTH_SHORT).show()
+                                                return@addOnSuccessListener
+                                            }
+                                            val referrerDoc = query.documents[0]
+                                            val referrerId = referrerDoc.id
+                                            if (referrerId == currentUserId) {
+                                                isApplyingCode = false
+                                                Toast.makeText(context, "لا يمكنك استخدام رمز الدعوة الخاص بك!", Toast.LENGTH_SHORT).show()
+                                                return@addOnSuccessListener
+                                            }
+
+                                            val currentUserRef = db.collection("users").document(currentUserId)
+                                            val referrerRef = db.collection("users").document(referrerId)
+
+                                            db.runTransaction { tx ->
+                                                tx.update(referrerRef, "referralCount", com.google.firebase.firestore.FieldValue.increment(1))
+                                                tx.update(currentUserRef, "invitedBy", referrerId)
+                                                tx.update(currentUserRef, "hasUsedReferral", true)
+                                            }.addOnSuccessListener {
+                                                isApplyingCode = false
+                                                hasUsedReferral = true
+                                                Toast.makeText(context, "تم تفعيل رمز الدعوة بنجاح!", Toast.LENGTH_SHORT).show()
+                                            }.addOnFailureListener {
+                                                isApplyingCode = false
+                                                Toast.makeText(context, "فشل تفعيل الرمز: ${it.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        .addOnFailureListener {
+                                            isApplyingCode = false
+                                            Toast.makeText(context, "تعذر التحقق من الرمز", Toast.LENGTH_SHORT).show()
+                                        }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                                enabled = !isApplyingCode
+                            ) {
+                                Text("تفعيل", color = Color.Black, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
 
         item {
