@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "164326659551-6h2cihpb77kcccamfufl4jticob0cpi6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alphorixy.cashevo",
+            "certificate_hash": "9895bbc18ff0f0748fa826d074d98c792bf9cb97"
+          }
+        },
+        {
           "client_id": "164326659551-k0fdpc26jerk4ac9n2a9ngsgem2uv9ap.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

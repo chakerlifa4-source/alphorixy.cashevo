@@ -1,0 +1,43 @@
+[debug] [2026-11-12T19:25:32.987Z] ----------------------------------------------------------------------
+[debug] [2026-11-12T19:25:32.989Z] Command:       /usr/bin/node /usr/local/bin/firebase functions:secrets:set CPX_SECRET
+[debug] [2026-11-12T19:25:32.989Z] CLI Version:   15.34.1
+[debug] [2026-11-12T19:25:32.989Z] Platform:      linux
+[debug] [2026-11-12T19:25:32.990Z] Node Version:  v22.22.1
+[debug] [2026-11-12T19:25:32.990Z] Detected Agent: unknown
+[debug] [2026-11-12T19:25:32.990Z] Time:          Thu Nov 12 2026 20:25:32 GMT+0100 (توقيت وسط أوروبا الرسمي)
+[debug] [2026-11-12T19:25:32.990Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-11-12T19:25:33.182Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-11-12T19:25:33.182Z] > authorizing via signed-in user (chaker.lifa.4@gmail.com)
+[debug] [2026-11-12T19:25:33.200Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:33.200Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:33.201Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/cashevo-54db7/services/secretmanager.googleapis.com [none]
+[debug] [2026-11-12T19:25:33.201Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/cashevo-54db7/services/secretmanager.googleapis.com  x-goog-user-project=cashevo-54db7
+[debug] [2026-11-12T19:25:34.500Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/cashevo-54db7/services/secretmanager.googleapis.com 200
+[debug] [2026-11-12T19:25:34.501Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/cashevo-54db7/services/secretmanager.googleapis.com [omitted]
+[debug] [2026-11-12T19:25:34.511Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-11-12T19:25:34.511Z] > authorizing via signed-in user (chaker.lifa.4@gmail.com)
+[debug] [2026-11-12T19:25:34.511Z] [iam] checking project cashevo-54db7 for permissions ["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]
+[debug] [2026-11-12T19:25:34.511Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:34.512Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:34.512Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7:testIamPermissions [none]
+[debug] [2026-11-12T19:25:34.512Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7:testIamPermissions  x-goog-user-project=cashevo-54db7
+[debug] [2026-11-12T19:25:34.512Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-11-12T19:25:35.475Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7:testIamPermissions 200
+[debug] [2026-11-12T19:25:35.475Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-11-12T19:25:35.476Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:35.476Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:35.476Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7 [none]
+[debug] [2026-11-12T19:25:35.767Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7 200
+[debug] [2026-11-12T19:25:35.768Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/cashevo-54db7 {"projectNumber":"164326659551","projectId":"cashevo-54db7","lifecycleState":"ACTIVE","name":"CashEvo","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-10-26T00:53:21.074Z"}
+[debug] [2026-11-12T19:25:35.768Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:35.769Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:35.769Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets/CPX_SECRET [none]
+[debug] [2026-11-12T19:25:36.363Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets/CPX_SECRET 404
+[debug] [2026-11-12T19:25:36.363Z] <<< [apiv2][body] GET https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets/CPX_SECRET {"error":{"code":404,"message":"Secret [projects/164326659551/secrets/CPX_SECRET] not found.","status":"NOT_FOUND"}}
+[debug] [2026-11-12T19:25:36.364Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:36.364Z] Checked if tokens are valid: true, expires at: 1794514036429
+[debug] [2026-11-12T19:25:36.365Z] >>> [apiv2][query] POST https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets secretId=CPX_SECRET
+[debug] [2026-11-12T19:25:36.365Z] >>> [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets {"name":"CPX_SECRET","replication":{"automatic":{}},"labels":{"firebase-managed":"functions"}}
+[debug] [2026-11-12T19:25:38.034Z] <<< [apiv2][status] POST https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets 200
+[debug] [2026-11-12T19:25:38.034Z] <<< [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/cashevo-54db7/secrets {"name":"projects/164326659551/secrets/CPX_SECRET","replication":{"automatic":{}},"createTime":"2026-11-12T19:25:36.581549Z","labels":{"firebase-managed":"functions"},"etag":"\"16601946c3a72a\""}

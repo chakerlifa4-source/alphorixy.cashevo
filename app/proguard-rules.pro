@@ -1,0 +1,4 @@
+-keep class com.alphorixy.cashevo.** { *; }
+-keep class com.google.android.gms.** { *; }
+-keep class com.google.firebase.** { *; }
+-keep class androidx.work.impl.** { *; }

@@ -1,44 +1,103 @@
 const {setGlobalOptions} = require("firebase-functions");
 const {onRequest, onCall} = require("firebase-functions/v2/https");
+const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 
 admin.initializeApp();
 const db = admin.firestore();
 
 setGlobalOptions({ maxInstances: 10 });
 
-exports.cpxPostback = onRequest(async (req, res) => {
+const CPX_SECRET = defineSecret("CPX_SECRET");
+
+exports.requestWithdrawal = onCall({enforceAppCheck: false}, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "سجّل الدخول أولاً");
+
+  const t = request.auth.token;
+  if (t.firebase.sign_in_provider === "anonymous") {
+    throw new HttpsError("permission-denied", "يجب استخدام حساب مُوثّق");
+  }
+
+  const {amount, fullName, accountNumber, paymentMethod} = request.data || {};
+  const METHODS = ["PayPal", "Payeer", "USDT", "BaridiMob"];
+
+  if (!Number.isFinite(amount) || amount < 5 || amount > 500 ||
+      !METHODS.includes(paymentMethod) ||
+      typeof fullName !== "string" || fullName.length > 80 ||
+      typeof accountNumber !== "string" || accountNumber.length > 100) {
+    throw new HttpsError("invalid-argument", "بيانات غير صحيحة");
+  }
+
+  const userRef = db.collection("users").doc(request.auth.uid);
+  const wRef = db.collection("withdrawals").doc();
+
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(userRef);
+    if (!u.exists) throw new HttpsError("not-found", "المستخدم غير موجود");
+
+    const bal = u.data()?.balance || 0;
+    if (bal < amount) throw new HttpsError("failed-precondition", "الرصيد غير كافٍ");
+
+    tx.update(userRef, {balance: bal - amount});
+    tx.set(wRef, {
+      userId: request.auth.uid,
+      fullName,
+      accountNumber,
+      amount,
+      paymentMethod,
+      status: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  });
+
+  return {ok: true};
+});
+
+exports.cpxPostback = onRequest({secrets: [CPX_SECRET]}, async (req, res) => {
     try {
-        const userId = req.query.uid;
-        const payout = req.query.amount;
+        const {ext_user_id: uid, trans_id: txId, amount_usd, status, hash} = req.query;
 
-        if (!userId || !payout) {
-            logger.warn("Missing parameters: uid or amount");
-            return res.status(400).send("Missing parameters: uid or amount");
+        if (!uid || !txId || !hash) {
+            logger.warn("Missing parameters: uid, trans_id, or hash");
+            return res.status(400).send("bad");
         }
 
-        const rewardAmount = parseFloat(payout);
-        if (isNaN(rewardAmount)) {
-            logger.warn("Invalid amount format");
-            return res.status(400).send("Invalid amount format");
+        const expected = crypto.createHash("md5").update(`${txId}-${CPX_SECRET.value()}`).digest("hex");
+        const ok = hash.length === expected.length &&
+                   crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expected));
+
+        if (!ok) {
+            logger.warn("Invalid CPX signature hash");
+            return res.status(403).send("forbidden");
         }
 
-        const userRef = db.collection("users").doc(userId);
+        const amount = Number(amount_usd);
+        if (String(status) !== "1" || !Number.isFinite(amount) || amount <= 0 || amount > 20) {
+            logger.warn("Invalid status or amount");
+            return res.status(400).send("bad");
+        }
 
-        await db.runTransaction(async (transaction) => {
-            const userDoc = await transaction.get(userRef);
+        const txRef = db.collection("cpx_transactions").doc(String(txId));
+        const userRef = db.collection("users").doc(String(uid));
+
+        await db.runTransaction(async (t) => {
+            const txDoc = await t.get(txRef);
+            if (txDoc.exists) {
+                return;
+            }
+
+            const userDoc = await t.get(userRef);
             if (!userDoc.exists) {
                 throw new Error("User does not exist in database");
             }
 
-            const currentBalance = userDoc.data().balance || 0.0;
-            const newBalance = currentBalance + rewardAmount;
-
-            transaction.update(userRef, { balance: newBalance });
+            t.update(userRef, { balance: admin.firestore.FieldValue.increment(amount) });
+            t.create(txRef, { uid, amount, at: Date.now() });
         });
 
-        logger.info(`Successfully rewarded user ${userId} with $${rewardAmount}`);
+        logger.info(`Successfully rewarded user ${uid} with $${amount} for transaction ${txId}`);
         return res.status(200).send("OK");
 
     } catch (error) {
