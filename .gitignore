@@ -24,3 +24,11 @@ keystore.properties
 *.log
 node_modules/
 firebase-debug.log
+
+*.apk
+app/release/
+
+# ملفات قديمة غير مستعملة
+/server.js
+/package.json
+/cpx-server/

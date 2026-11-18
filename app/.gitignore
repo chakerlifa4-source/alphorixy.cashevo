@@ -1,1 +1,4 @@
 /build
+mapping.txt
+**/release/mapping.txt
+*.mapping
