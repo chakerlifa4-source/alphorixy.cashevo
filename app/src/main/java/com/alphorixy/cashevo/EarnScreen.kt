@@ -133,20 +133,19 @@ fun EarnScreen(
     }
 
     fun claimWeeklyReward() {
+        val deviceId = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            android.provider.Settings.Secure.ANDROID_ID
+        ) ?: ""
+
         FirebaseFunctions.getInstance()
             .getHttpsCallable("claimWeeklyReward")
-            .call()
+            .call(hashMapOf("deviceId" to deviceId))
             .addOnSuccessListener {
                 Toast.makeText(context, "تم استلام المكافأة الأسبوعية بنجاح (+0.06$)", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
-                val msg = e.message ?: "فشل استلام المكافأة"
-                val cleanMsg = if (msg.contains("INTERNAL")) {
-                    msg.substringAfterLast(": ").ifEmpty { "لم يحن موعد المكافأة الأسبوعية بعد." }
-                } else {
-                    msg
-                }
-                Toast.makeText(context, cleanMsg, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, e.message ?: "فشل استلام المكافأة", Toast.LENGTH_LONG).show()
             }
     }
 

@@ -1,5 +1,5 @@
 const {setGlobalOptions} = require("firebase-functions");
-const {onRequest, onCall} = require("firebase-functions/v2/https");
+const {onRequest, onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
@@ -19,6 +19,9 @@ exports.requestWithdrawal = onCall({enforceAppCheck: false}, async (request) => 
   if (t.firebase.sign_in_provider === "anonymous") {
     throw new HttpsError("permission-denied", "يجب استخدام حساب مُوثّق");
   }
+    if (t.firebase.sign_in_provider === "password" && t.email_verified !== true) {
+      throw new HttpsError("permission-denied", "يجب توثيق بريدك الإلكتروني أولاً");
+    }
 
   const {amount, fullName, accountNumber, paymentMethod} = request.data || {};
   const METHODS = ["PayPal", "Payeer", "USDT", "BaridiMob"];
@@ -106,50 +109,67 @@ exports.cpxPostback = onRequest({secrets: [CPX_SECRET]}, async (req, res) => {
     }
 });
 
-exports.claimWeeklyReward = onCall(async (request) => {
-    if (!request.auth) {
-        throw new Error("يجب تسجيل الدخول أولاً لاستلام المكافأة.");
+exports.claimWeeklyReward = onCall({enforceAppCheck: false}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "يجب تسجيل الدخول أولاً لاستلام المكافأة.");
+  }
+
+  const provider = request.auth.token.firebase && request.auth.token.firebase.sign_in_provider;
+  if (provider === "anonymous") {
+    throw new HttpsError("permission-denied", "سجّل الدخول بحساب Google أو بريد إلكتروني لاستلام المكافأة.");
+  }
+  if (provider === "password" && request.auth.token.email_verified !== true) {
+    throw new HttpsError("permission-denied", "يجب توثيق بريدك الإلكتروني أولاً.");
+  }
+
+  const deviceId = request.data && request.data.deviceId;
+  if (typeof deviceId !== "string" || deviceId.length < 8 || deviceId.length > 128) {
+    throw new HttpsError("invalid-argument", "تعذّر التعرف على الجهاز.");
+  }
+
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  const REWARD = 0.06;
+  const uid = request.auth.uid;
+  const deviceKey = crypto.createHash("sha256").update("cashevo-device:" + deviceId).digest("hex");
+
+  const userRef = db.collection("users").doc(uid);
+  const deviceRef = db.collection("device_claims").doc(deviceKey);
+  const historyRef = userRef.collection("task_history").doc();
+
+  return await db.runTransaction(async (t) => {
+    const [userSnap, deviceSnap] = await Promise.all([t.get(userRef), t.get(deviceRef)]);
+    if (!userSnap.exists) {
+      throw new HttpsError("not-found", "بيانات المستخدم غير موجودة.");
     }
 
-    const userId = request.auth.uid;
-    const userRef = db.collection("users").doc(userId);
-    const historyRef = userRef.collection("task_history").doc();
-
-    try {
-        return await db.runTransaction(async (transaction) => {
-            const snapshot = await transaction.get(userRef);
-            if (!snapshot.exists) {
-                throw new Error("بيانات المستخدم غير موجودة.");
-            }
-
-            const userData = snapshot.data();
-            const currentBalance = userData.balance || 0.0;
-            const lastWeeklyReward = userData.lastWeeklyReward || 0;
-            const currentTime = Date.now();
-
-            const sevenDaysMillis = 7 * 24 * 60 * 60 * 1000;
-
-            if (lastWeeklyReward !== 0 && (currentTime - lastWeeklyReward < sevenDaysMillis)) {
-                throw new Error("لم يحن موعد المكافأة الأسبوعية بعد. يرجى الانتظار حتى تنقضي 7 أيام.");
-            }
-
-            const newBalance = currentBalance + 0.06;
-
-            transaction.update(userRef, {
-                balance: newBalance,
-                lastWeeklyReward: currentTime
-            });
-
-            transaction.set(historyRef, {
-                title: "المكافأة الأسبوعية",
-                reward: 0.06,
-                timestamp: currentTime,
-                type: "WEEKLY_REWARD"
-            });
-
-            return { success: true, newBalance: newBalance };
-        });
-    } catch (error) {
-        throw new Error(error.message || "فشل استلام المكافأة.");
+    const now = Date.now();
+    const userLast = userSnap.data().lastWeeklyReward || 0;
+    if (userLast !== 0 && now - userLast < WEEK) {
+      throw new HttpsError("failed-precondition", "لم يحن موعد المكافأة الأسبوعية بعد. يرجى الانتظار حتى تنقضي 7 أيام.");
     }
+
+    const deviceLast = deviceSnap.exists ? (deviceSnap.data().lastClaim || 0) : 0;
+    if (deviceLast !== 0 && now - deviceLast < WEEK) {
+      throw new HttpsError("already-exists", "تم استلام المكافأة الأسبوعية على هذا الجهاز بالفعل. حاول في الأسبوع القادم.");
+    }
+
+    t.update(userRef, {
+      balance: admin.firestore.FieldValue.increment(REWARD),
+      lastWeeklyReward: now,
+    });
+    t.set(deviceRef, {
+      lastClaim: now,
+      lastUid: uid,
+      claims: admin.firestore.FieldValue.increment(1),
+    }, {merge: true});
+    t.set(historyRef, {
+      userId: uid,
+      title: "المكافأة الأسبوعية",
+      reward: REWARD,
+      timestamp: now,
+      type: "WEEKLY_REWARD",
+    });
+
+    return {success: true};
+  });
 });

@@ -98,7 +98,19 @@ fun MainDashboardScreen() {
                 if (doc.exists()) {
                     userBalance = doc.getDouble("balance") ?: 0.0
                 } else if (!doc.metadata.isFromCache) {
-                    ref.set(mapOf("balance" to 0.0))
+                    val u = auth.currentUser
+                    ref.set(
+                        hashMapOf(
+                            "uid" to id,
+                            "email" to (u?.email ?: ""),
+                            "phoneNumber" to (u?.phoneNumber ?: ""),
+                            "displayName" to (u?.displayName ?: "مستخدم Cash Evo"),
+                            "points" to 0,
+                            "balance" to 0.0,
+                            "provider" to (if (u?.isAnonymous == true) "guest" else "unknown"),
+                            "createdAt" to System.currentTimeMillis()
+                        )
+                    )
                 }
             }
         }

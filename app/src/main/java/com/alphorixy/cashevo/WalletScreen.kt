@@ -26,11 +26,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.functions.FirebaseFunctions
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.ui.platform.LocalLocale
 
-// نموذج بيانات طلب السحب لعرضه في السجل
 data class WithdrawalItem(
     val id: String = "",
     val fullName: String = "",
@@ -478,42 +478,26 @@ fun WalletScreen(
                     onClick = {
                         isLoading = true
 
-                        val userRef = db.collection("users").document(currentUserId)
-                        val withdrawalRef = db.collection("withdrawals").document()
-
-                        db.runTransaction { transaction ->
-                            val snapshot = transaction.get(userRef)
-                            val currentDbBalance = snapshot.getDouble("balance") ?: 0.0
-
-                            if (currentDbBalance < amount) {
-                                throw IllegalStateException("عذراً، رصيدك الحالي غير كافٍ أو تم تغييره.")
-                            }
-
-                            val newBalance = currentDbBalance - amount
-
-                            transaction.update(userRef, "balance", newBalance)
-
-                            val withdrawalData = mapOf(
-                                "userId" to currentUserId,
-                                "fullName" to fullName,
-                                "accountNumber" to accountNumber,
-                                "amount" to amount,
-                                "paymentMethod" to selectedMethod,
-                                "status" to "pending",
-                                "createdAt" to FieldValue.serverTimestamp()
+                        FirebaseFunctions.getInstance()
+                            .getHttpsCallable("requestWithdrawal")
+                            .call(
+                                hashMapOf(
+                                    "amount" to amount,
+                                    "fullName" to fullName.trim(),
+                                    "accountNumber" to accountNumber.trim(),
+                                    "paymentMethod" to selectedMethod
+                                )
                             )
-                            transaction.set(withdrawalRef, withdrawalData)
-
-                            newBalance
-                        }.addOnSuccessListener { _ ->
-                            isLoading = false
-                            showConfirmDialog = false
-                            Toast.makeText(context, "تم إرسال طلب السحب بنجاح وخصم المبلغ من رصيدك!", Toast.LENGTH_LONG).show()
-                            onBalanceUpdated()
-                        }.addOnFailureListener { e ->
-                            isLoading = false
-                            Toast.makeText(context, "فشل إتمام العملية: ${e.localizedMessage ?: "حدث خطأ غير معروف"}", Toast.LENGTH_LONG).show()
-                        }
+                            .addOnSuccessListener {
+                                isLoading = false
+                                showConfirmDialog = false
+                                Toast.makeText(context, "تم إرسال طلب السحب بنجاح وخصم المبلغ من رصيدك!", Toast.LENGTH_LONG).show()
+                                onBalanceUpdated()
+                            }
+                            .addOnFailureListener { e ->
+                                isLoading = false
+                                Toast.makeText(context, e.message ?: "حدث خطأ غير معروف", Toast.LENGTH_LONG).show()
+                            }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Gold),
                     enabled = !isLoading

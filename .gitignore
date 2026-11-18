@@ -13,3 +13,14 @@
 .externalNativeBuild
 .cxx
 local.properties
+*.jks
+*.keystore
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+.env
+.env.*
+keystore.properties
+.kotlin/
+*.log
+node_modules/
+firebase-debug.log
